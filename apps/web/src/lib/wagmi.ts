@@ -10,8 +10,17 @@ export const wagmiConfig = createConfig({
   chains: [sepolia, mainnet],
   multiInjectedProviderDiscovery: true,
   transports: {
-    [sepolia.id]: fallback([http(process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL), http()]),
-    [mainnet.id]: fallback([http(process.env.NEXT_PUBLIC_MAINNET_RPC_URL), http()]),
+    [sepolia.id]: fallback([
+      http(process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL),
+      http("https://ethereum-sepolia-rpc.publicnode.com"),
+      http("https://11155111.rpc.thirdweb.com"),
+      http(),
+    ]),
+    [mainnet.id]: fallback([
+      http(process.env.NEXT_PUBLIC_MAINNET_RPC_URL),
+      http("https://ethereum-rpc.publicnode.com"),
+      http(),
+    ]),
   },
   ssr: true,
 });

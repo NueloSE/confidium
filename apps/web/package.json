@@ -12,6 +12,7 @@
   "dependencies": {
     "@confidium/core": "workspace:*",
     "@tanstack/react-query": "^5.101.1",
+    "@zama-fhe/relayer-sdk": "^0.4.4",
     "next": "^15.1.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

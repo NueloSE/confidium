@@ -1,19 +1,11 @@
-import type { Address, PublicClient } from "viem";
+import type { Address, ContractFunctionParameters, PublicClient } from "viem";
 import { getAddress } from "viem";
 import { erc20Abi, erc7984Abi, registryAbi } from "./abis";
 import { ERC7984_INTERFACE_ID, REGISTRY_ADDRESS, type SupportedChainId } from "./chains";
 import type { EnrichedPair, RegistryPair, TokenMeta } from "./types";
 import { computeBadge, looksMock } from "./verify";
 
-async function tryRead<T>(fn: () => Promise<T>): Promise<T | undefined> {
-  try {
-    return await fn();
-  } catch {
-    return undefined;
-  }
-}
-
-/** Read every pair from the on-chain registry (length + single slice). */
+/** Read every pair from the on-chain registry (length + single slice = 2 calls). */
 export async function readRegistryPairs(
   client: PublicClient,
   chainId: SupportedChainId,
@@ -43,64 +35,74 @@ export async function readRegistryPairs(
   }));
 }
 
-async function readTokenMeta(client: PublicClient, address: Address): Promise<TokenMeta> {
-  const [name, symbol, decimals] = await Promise.all([
-    tryRead(() => client.readContract({ address, abi: erc20Abi, functionName: "name" })),
-    tryRead(() => client.readContract({ address, abi: erc20Abi, functionName: "symbol" })),
-    tryRead(() => client.readContract({ address, abi: erc20Abi, functionName: "decimals" })),
-  ]);
-  return { name, symbol, decimals };
-}
+type McResult = { status: "success"; result: unknown } | { status: "failure"; error: Error };
 
-/** Enrich a pair with metadata + verification facts → badge. Resilient per-field. */
-export async function enrichPair(
-  client: PublicClient,
-  pair: RegistryPair,
-): Promise<EnrichedPair> {
-  const [wrapperMeta, underlyingMeta, supports, rate, reverse] = await Promise.all([
-    readTokenMeta(client, pair.wrapper),
-    readTokenMeta(client, pair.underlying),
-    tryRead(() =>
-      client.readContract({
-        address: pair.wrapper,
-        abi: erc7984Abi,
-        functionName: "supportsInterface",
-        args: [ERC7984_INTERFACE_ID],
-      }),
-    ),
-    tryRead(() =>
-      client.readContract({ address: pair.wrapper, abi: erc7984Abi, functionName: "rate" }),
-    ),
-    tryRead(() =>
-      client.readContract({
-        address: REGISTRY_ADDRESS[pair.chainId],
-        abi: registryAbi,
-        functionName: "getTokenAddress",
-        args: [pair.wrapper],
-      }),
-    ),
-  ]);
+const FIELDS_PER_PAIR = 9;
 
-  const supports7984 = supports === true;
-  const bidirectionalOk =
-    Array.isArray(reverse) && getAddress(reverse[1] as Address) === pair.underlying;
-  const isMock = looksMock(wrapperMeta, underlyingMeta);
-  const badge = computeBadge({
-    source: pair.source,
-    isValid: pair.isValid,
-    supports7984,
-    bidirectionalOk,
-    isMock,
-  });
-
-  return { ...pair, wrapperMeta, underlyingMeta, rate, supports7984, bidirectionalOk, badge };
-}
-
-/** Convenience: read + enrich every registry pair for a chain. */
+/**
+ * Read + enrich every registry pair using a SINGLE multicall for all metadata +
+ * verification reads (atomic → fast and stable, no per-field flapping).
+ */
 export async function getEnrichedPairs(
   client: PublicClient,
   chainId: SupportedChainId,
 ): Promise<EnrichedPair[]> {
   const pairs = await readRegistryPairs(client, chainId);
-  return Promise.all(pairs.map((p) => enrichPair(client, p)));
+  if (pairs.length === 0) return [];
+
+  const registry = REGISTRY_ADDRESS[chainId];
+  const contracts: ContractFunctionParameters[] = pairs.flatMap((p) => [
+    { address: p.wrapper, abi: erc7984Abi, functionName: "symbol" },
+    { address: p.wrapper, abi: erc7984Abi, functionName: "name" },
+    { address: p.wrapper, abi: erc7984Abi, functionName: "decimals" },
+    { address: p.underlying, abi: erc20Abi, functionName: "symbol" },
+    { address: p.underlying, abi: erc20Abi, functionName: "name" },
+    { address: p.underlying, abi: erc20Abi, functionName: "decimals" },
+    {
+      address: p.wrapper,
+      abi: erc7984Abi,
+      functionName: "supportsInterface",
+      args: [ERC7984_INTERFACE_ID],
+    },
+    { address: p.wrapper, abi: erc7984Abi, functionName: "rate" },
+    { address: registry, abi: registryAbi, functionName: "getTokenAddress", args: [p.wrapper] },
+  ]);
+
+  const results = (await client.multicall({
+    contracts,
+    allowFailure: true,
+  })) as unknown as McResult[];
+
+  const pick = <T>(idx: number): T | undefined => {
+    const r = results[idx];
+    return r && r.status === "success" ? (r.result as T) : undefined;
+  };
+
+  return pairs.map((p, i) => {
+    const b = i * FIELDS_PER_PAIR;
+    const wrapperMeta: TokenMeta = {
+      symbol: pick<string>(b + 0),
+      name: pick<string>(b + 1),
+      decimals: pick<number>(b + 2),
+    };
+    const underlyingMeta: TokenMeta = {
+      symbol: pick<string>(b + 3),
+      name: pick<string>(b + 4),
+      decimals: pick<number>(b + 5),
+    };
+    const supports7984 = pick<boolean>(b + 6) === true;
+    const rate = pick<bigint>(b + 7);
+    const reverse = pick<readonly [boolean, Address]>(b + 8);
+    const bidirectionalOk = Array.isArray(reverse) && getAddress(reverse[1]) === p.underlying;
+    const isMock = looksMock(wrapperMeta, underlyingMeta);
+    const badge = computeBadge({
+      source: p.source,
+      isValid: p.isValid,
+      supports7984,
+      bidirectionalOk,
+      isMock,
+    });
+
+    return { ...p, wrapperMeta, underlyingMeta, rate, supports7984, bidirectionalOk, badge };
+  });
 }
