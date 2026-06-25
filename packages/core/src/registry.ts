@@ -47,10 +47,16 @@ export async function getEnrichedPairs(
   client: PublicClient,
   chainId: SupportedChainId,
 ): Promise<EnrichedPair[]> {
-  const pairs = await readRegistryPairs(client, chainId);
+  return enrichPairs(client, await readRegistryPairs(client, chainId));
+}
+
+/** Enrich an arbitrary list of pairs (registry OR custom) with metadata + verification badges. */
+export async function enrichPairs(
+  client: PublicClient,
+  pairs: RegistryPair[],
+): Promise<EnrichedPair[]> {
   if (pairs.length === 0) return [];
 
-  const registry = REGISTRY_ADDRESS[chainId];
   const contracts: ContractFunctionParameters[] = pairs.flatMap((p) => [
     { address: p.wrapper, abi: erc7984Abi, functionName: "symbol" },
     { address: p.wrapper, abi: erc7984Abi, functionName: "name" },
@@ -65,7 +71,12 @@ export async function getEnrichedPairs(
       args: [ERC7984_INTERFACE_ID],
     },
     { address: p.wrapper, abi: erc7984Abi, functionName: "rate" },
-    { address: registry, abi: registryAbi, functionName: "getTokenAddress", args: [p.wrapper] },
+    {
+      address: REGISTRY_ADDRESS[p.chainId],
+      abi: registryAbi,
+      functionName: "getTokenAddress",
+      args: [p.wrapper],
+    },
   ]);
 
   const results = (await client.multicall({

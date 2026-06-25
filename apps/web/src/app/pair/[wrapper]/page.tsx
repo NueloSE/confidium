@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAddress } from "viem";
-import { SEPOLIA_CHAIN_ID } from "@confidium/core";
+import { enrichPairs, SEPOLIA_CHAIN_ID } from "@confidium/core";
 import { AddressChip } from "@/components/address-chip";
 import { BadgePill } from "@/components/badge";
 import { PairActions } from "@/components/pair-actions";
+import { getServerClient } from "@/lib/clients";
+import { toUiPair } from "@/lib/pair";
 import { getPairsCached } from "@/lib/registry-data";
 
 export const revalidate = 60;
@@ -20,10 +22,17 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-export default async function PairPage({ params }: { params: Promise<{ wrapper: string }> }) {
+export default async function PairPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ wrapper: string }>;
+  searchParams: Promise<{ u?: string }>;
+}) {
   const { wrapper } = await params;
+  const { u } = await searchParams;
 
-  let target: string | null = null;
+  let target: `0x${string}` | null = null;
   try {
     target = getAddress(wrapper);
   } catch {
@@ -32,7 +41,21 @@ export default async function PairPage({ params }: { params: Promise<{ wrapper: 
   if (!target) notFound();
 
   const { pairs } = await getPairsCached(SEPOLIA_CHAIN_ID);
-  const pair = pairs.find((p) => p.wrapper.toLowerCase() === target.toLowerCase());
+  let pair = pairs.find((p) => p.wrapper.toLowerCase() === target.toLowerCase());
+
+  // Custom pair (added via the in-app form / shared link) carries its underlying as ?u=.
+  if (!pair && u) {
+    try {
+      const underlying = getAddress(u);
+      const [enriched] = await enrichPairs(getServerClient(SEPOLIA_CHAIN_ID), [
+        { chainId: SEPOLIA_CHAIN_ID, underlying, wrapper: target, isValid: true, source: "custom" },
+      ]);
+      if (enriched) pair = toUiPair(enriched);
+    } catch {
+      /* fall through to notFound */
+    }
+  }
+
   if (!pair) notFound();
 
   return (

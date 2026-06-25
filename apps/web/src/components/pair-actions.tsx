@@ -5,7 +5,6 @@ import {
   useAccount,
   useChainId,
   useReadContract,
-  useSignTypedData,
   useSwitchChain,
   useWaitForTransactionReceipt,
   useWatchAsset,
@@ -14,6 +13,7 @@ import {
 import { bytesToHex, encodeFunctionData, formatUnits, parseEventLogs, parseUnits } from "viem";
 import { erc20Abi, erc7984Abi, SEPOLIA_CHAIN_ID } from "@confidium/core";
 import { getFhevmInstance } from "@/lib/fhevm";
+import { DecryptBalance } from "@/components/decrypt-balance";
 import type { UiPair } from "@/lib/pair";
 
 const inputCls =
@@ -230,149 +230,6 @@ function WrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
           : "Wrap into the confidential token — your balance becomes encrypted."}
       </p>
     </Card>
-  );
-}
-
-type DecryptSession = {
-  publicKey: string;
-  privateKey: string;
-  signature: string;
-  startTimeStamp: number;
-  durationDays: number;
-  contractAddresses: string[];
-};
-
-const ZERO_HANDLE = "0x0000000000000000000000000000000000000000000000000000000000000000";
-const decryptSessions = new Map<string, DecryptSession>();
-
-function RevealBalance({ pair, refreshKey }: { pair: UiPair; refreshKey: number }) {
-  const dec = pair.wrapperMeta.decimals ?? 6;
-  const symbol = pair.wrapperMeta.symbol ?? "cToken";
-  const { address } = useAccount();
-  const { signTypedDataAsync } = useSignTypedData();
-  const [value, setValue] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const { data: handle } = useReadContract({
-    address: pair.wrapper as `0x${string}`,
-    abi: erc7984Abi,
-    functionName: "confidentialBalanceOf",
-    args: address ? [address] : undefined,
-    query: { enabled: Boolean(address), refetchInterval: 12_000 },
-  });
-
-  // Hide a previously-revealed value when the balance handle changes (e.g. after wrap).
-  useEffect(() => {
-    setValue(null);
-  }, [handle, refreshKey]);
-
-  async function reveal() {
-    if (!address || !handle) return;
-    setError(null);
-    if (handle === ZERO_HANDLE) {
-      setValue("0");
-      return;
-    }
-    setBusy(true);
-    try {
-      const instance = await getFhevmInstance();
-      const wrapper = pair.wrapper;
-      const key = `${address}:${wrapper}`;
-      let session = decryptSessions.get(key);
-
-      if (!session) {
-        const keypair = instance.generateKeypair();
-        const startTimeStamp = Math.floor(Date.now() / 1000);
-        const durationDays = 10;
-        const contractAddresses = [wrapper];
-        const eip712 = instance.createEIP712(
-          keypair.publicKey,
-          contractAddresses,
-          startTimeStamp,
-          durationDays,
-        ) as unknown as {
-          domain: Record<string, unknown>;
-          types: { UserDecryptRequestVerification: unknown };
-          message: Record<string, unknown>;
-        };
-        const signature = await signTypedDataAsync({
-          domain: eip712.domain,
-          types: { UserDecryptRequestVerification: eip712.types.UserDecryptRequestVerification },
-          primaryType: "UserDecryptRequestVerification",
-          message: eip712.message,
-        } as unknown as Parameters<typeof signTypedDataAsync>[0]);
-
-        session = {
-          publicKey: keypair.publicKey,
-          privateKey: keypair.privateKey,
-          signature: signature.replace("0x", ""),
-          startTimeStamp,
-          durationDays,
-          contractAddresses,
-        };
-        decryptSessions.set(key, session);
-      }
-
-      const result = (await instance.userDecrypt(
-        [{ handle: handle as string, contractAddress: wrapper }],
-        session.privateKey,
-        session.publicKey,
-        session.signature,
-        session.contractAddresses,
-        address,
-        session.startTimeStamp,
-        session.durationDays,
-      )) as unknown as Record<string, bigint | boolean | string>;
-
-      const clear = result[handle];
-      setValue(formatUnits(BigInt(clear ?? 0), dec));
-    } catch (e) {
-      setError((e as Error).message.split("\n")[0] ?? "Decryption failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="rounded-xl border border-neutral-900 bg-neutral-950/40 px-5 py-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-xs text-neutral-500">Your confidential {symbol} balance</div>
-          <div className="text-lg font-semibold text-neutral-100">
-            {value != null ? (
-              <>
-                {value} <span className="text-sm text-neutral-500">{symbol}</span>
-              </>
-            ) : (
-              <span className="text-neutral-400">🔒 encrypted</span>
-            )}
-          </div>
-        </div>
-        {value != null ? (
-          <button
-            type="button"
-            onClick={() => setValue(null)}
-            className="shrink-0 rounded-lg border border-neutral-700 px-3 py-2 text-xs text-neutral-200 transition hover:bg-neutral-900"
-          >
-            Hide
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={reveal}
-            disabled={busy || !handle}
-            className="shrink-0 rounded-lg bg-white px-3 py-2 text-xs font-medium text-black transition hover:bg-neutral-200 disabled:opacity-40"
-          >
-            {busy ? "Decrypting…" : "👁 Reveal"}
-          </button>
-        )}
-      </div>
-      {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
-      <p className="mt-2 text-xs text-neutral-600">
-        Decrypted privately via EIP-712 — only you can read this value.
-      </p>
-    </div>
   );
 }
 
@@ -678,7 +535,13 @@ export function PairActions({ pair }: { pair: UiPair }) {
   return (
     <div className="grid gap-4">
       <BalanceBar pair={pair} refreshKey={refreshKey} />
-      <RevealBalance pair={pair} refreshKey={refreshKey} />
+      <DecryptBalance
+        token={{
+          address: pair.wrapper as `0x${string}`,
+          symbol: pair.wrapperMeta.symbol,
+          decimals: pair.wrapperMeta.decimals,
+        }}
+      />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <FaucetCard pair={pair} onDone={bump} />
         <WrapCard pair={pair} onDone={bump} />
