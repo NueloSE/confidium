@@ -293,7 +293,6 @@ function UnwrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
       setFinalizeData({ cleartext, proof: res.decryptionProof });
       setPhase("finalizeReady");
     } catch (e) {
-      console.error("[unwrap] publicDecrypt error:", e);
       setError(
         (e as Error).message.split("\n")[0] ?? "Couldn't decrypt the amount yet — retry in a moment.",
       );

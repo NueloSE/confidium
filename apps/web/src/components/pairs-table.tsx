@@ -6,8 +6,6 @@ import type { UiPair } from "@/lib/pair";
 import { BadgePill } from "./badge";
 import { AddressChip } from "./address-chip";
 
-const SEPOLIA_EXPLORER = "https://sepolia.etherscan.io";
-
 function matches(p: UiPair, term: string): boolean {
   const fields = [
     p.wrapperMeta.symbol,
@@ -29,7 +27,15 @@ function rateLabel(rate: string | null): { text: string; title: string } {
   };
 }
 
-export function PairsTable({ pairs }: { pairs: UiPair[] }) {
+export function PairsTable({
+  pairs,
+  explorerBase,
+  linkDetails,
+}: {
+  pairs: UiPair[];
+  explorerBase: string;
+  linkDetails: boolean;
+}) {
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -72,12 +78,18 @@ export function PairsTable({ pairs }: { pairs: UiPair[] }) {
               >
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <Link
-                      href={`/pair/${p.wrapper}`}
-                      className="font-medium text-neutral-100 hover:underline"
-                    >
-                      {p.wrapperMeta.symbol ?? "—"}
-                    </Link>
+                    {linkDetails ? (
+                      <Link
+                        href={`/pair/${p.wrapper}`}
+                        className="font-medium text-neutral-100 hover:underline"
+                      >
+                        {p.wrapperMeta.symbol ?? "—"}
+                      </Link>
+                    ) : (
+                      <span className="font-medium text-neutral-100">
+                        {p.wrapperMeta.symbol ?? "—"}
+                      </span>
+                    )}
                     <BadgePill badge={p.badge} />
                   </div>
                   <div className="text-xs text-neutral-500">{p.wrapperMeta.name}</div>
@@ -91,10 +103,10 @@ export function PairsTable({ pairs }: { pairs: UiPair[] }) {
                   {rateLabel(p.rate).text}
                 </td>
                 <td className="px-4 py-3">
-                  <AddressChip address={p.wrapper} explorerBase={SEPOLIA_EXPLORER} />
+                  <AddressChip address={p.wrapper} explorerBase={explorerBase} />
                 </td>
                 <td className="px-4 py-3">
-                  <AddressChip address={p.underlying} explorerBase={SEPOLIA_EXPLORER} />
+                  <AddressChip address={p.underlying} explorerBase={explorerBase} />
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2 text-xs text-neutral-500">

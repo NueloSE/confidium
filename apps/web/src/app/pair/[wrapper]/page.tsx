@@ -5,6 +5,7 @@ import { enrichPairs, SEPOLIA_CHAIN_ID } from "@confidium/core";
 import { AddressChip } from "@/components/address-chip";
 import { BadgePill } from "@/components/badge";
 import { PairActions } from "@/components/pair-actions";
+import { PendingUnwraps } from "@/components/pending-unwraps";
 import { getServerClient } from "@/lib/clients";
 import { toUiPair } from "@/lib/pair";
 import { getPairsCached } from "@/lib/registry-data";
@@ -81,6 +82,10 @@ export default async function PairPage({
       </div>
 
       <PairActions pair={pair} />
+      <PendingUnwraps
+        wrapper={pair.wrapper as `0x${string}`}
+        symbol={pair.underlyingMeta.symbol ?? "token"}
+      />
     </main>
   );
 }
