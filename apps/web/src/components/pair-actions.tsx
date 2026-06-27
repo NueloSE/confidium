@@ -190,7 +190,7 @@ function FaucetCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
   );
 }
 
-function WrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
+export function WrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
   const dec = pair.underlyingMeta.decimals ?? 18;
   const [amount, setAmount] = useState("100");
   const { address } = useAccount();
@@ -316,7 +316,7 @@ type UnwrapPhase =
   | "done"
   | "error";
 
-function UnwrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
+export function UnwrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
   const dec = pair.wrapperMeta.decimals ?? 6;
   const symbol = pair.underlyingMeta.symbol ?? "ERC-20";
   const [amount, setAmount] = useState("50");
