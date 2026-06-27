@@ -195,6 +195,7 @@ function FaucetCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           inputMode="decimal"
+          aria-label="Amount to claim"
         />
         <button className={btnCls} onClick={claim} disabled={isPending}>
           {isPending ? "Claiming…" : "Claim"}
@@ -285,6 +286,7 @@ export function WrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void })
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           inputMode="decimal"
+          aria-label="Amount to wrap"
         />
         {needsApproval ? (
           <button
@@ -556,6 +558,7 @@ export function UnwrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void 
           onChange={(e) => setAmount(e.target.value)}
           inputMode="decimal"
           disabled={inputDisabled}
+          aria-label="Amount to unwrap"
         />
         <ActionButton />
       </div>
@@ -706,6 +709,7 @@ function TransferCard({
           onChange={(e) => setTo(e.target.value)}
           placeholder="Recipient 0x…"
           disabled={inputsDisabled}
+          aria-label="Recipient address"
         />
         <div className="flex gap-2">
           <input
@@ -714,6 +718,7 @@ function TransferCard({
             onChange={(e) => setAmount(e.target.value)}
             inputMode="decimal"
             disabled={inputsDisabled}
+            aria-label="Amount to send"
           />
           {phase === "ready" ? (
             <button className={confirmCls} onClick={confirmSend}>

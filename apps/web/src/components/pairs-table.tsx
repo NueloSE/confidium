@@ -89,14 +89,14 @@ export function PairsTable({
       <div className="overflow-hidden rounded-2xl border border-hairline">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-hairline bg-surface/95 backdrop-blur">
-              <th className={cn(th, "sticky top-14 z-10 bg-surface/95")}>Confidential</th>
-              <th className={cn(th, "sticky top-14 z-10 bg-surface/95")}>Underlying</th>
-              <th className={cn(thNum, "sticky top-14 z-10 hidden bg-surface/95 lg:table-cell")}>Dec</th>
-              <th className={cn(thNum, "sticky top-14 z-10 hidden bg-surface/95 sm:table-cell")}>Rate</th>
-              <th className={cn(th, "sticky top-14 z-10 hidden bg-surface/95 md:table-cell")}>Wrapper</th>
-              <th className={cn(th, "sticky top-14 z-10 hidden bg-surface/95 lg:table-cell")}>Underlying addr</th>
-              <th className={cn(th, "sticky top-14 z-10 hidden bg-surface/95 md:table-cell")}>Status</th>
+            <tr className="border-b border-hairline bg-surface-2/60">
+              <th className={th}>Confidential</th>
+              <th className={th}>Underlying</th>
+              <th className={cn(thNum, "hidden lg:table-cell")}>Dec</th>
+              <th className={cn(thNum, "hidden sm:table-cell")}>Rate</th>
+              <th className={cn(th, "hidden md:table-cell")}>Wrapper</th>
+              <th className={cn(th, "hidden lg:table-cell")}>Underlying addr</th>
+              <th className={cn(th, "hidden md:table-cell")}>Status</th>
             </tr>
           </thead>
           <tbody>
