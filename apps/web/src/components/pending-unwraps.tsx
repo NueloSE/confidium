@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAccount, usePublicClient } from "wagmi";
 import { encodeFunctionData, type Address } from "viem";
+import { LifeBuoy, Loader2 } from "lucide-react";
 import { erc7984Abi, SEPOLIA_CHAIN_ID } from "@confidium/core";
 import { getFhevmInstance } from "@/lib/fhevm";
 
@@ -77,29 +78,41 @@ export function PendingUnwraps({ wrapper, symbol }: { wrapper: Address; symbol: 
   if (!address || (!loading && pending.length === 0)) return null;
 
   return (
-    <div className="mt-4 rounded-xl border border-amber-900/40 bg-amber-950/10 px-5 py-4">
-      <div className="text-sm font-semibold text-amber-300">Pending unwraps to finalize</div>
-      <p className="mt-1 text-xs text-neutral-500">
+    <div className="mt-4 rounded-2xl border border-warn/25 bg-warn-soft px-5 py-4">
+      <div className="flex items-center gap-2 text-sm font-semibold text-warn">
+        <LifeBuoy className="h-4 w-4" />
+        Pending unwraps to finalize
+      </div>
+      <p className="mt-1.5 text-xs leading-relaxed text-zinc-400">
         These {symbol} unwraps were burned but never finalized (e.g. the tab closed between the two
-        steps). Finalize to release your ERC-20.
+        steps). Finalize to release your ERC-20 — funds are never stuck.
       </p>
-      {loading && <p className="mt-2 text-xs text-neutral-500">Checking…</p>}
+      {loading && (
+        <p className="mt-2 flex items-center gap-1.5 text-xs text-zinc-500">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Checking…
+        </p>
+      )}
       <ul className="mt-3 space-y-2">
         {pending.map((id) => (
-          <li key={id} className="flex items-center justify-between gap-3 text-xs">
-            <span className="font-mono text-neutral-400">{id.slice(0, 16)}…</span>
+          <li
+            key={id}
+            className="flex items-center justify-between gap-3 rounded-lg border border-hairline bg-surface/60 px-3 py-2 text-xs"
+          >
+            <span className="font-mono text-zinc-400">{id.slice(0, 16)}…</span>
             <button
               type="button"
               onClick={() => finalize(id)}
               disabled={busyId === id}
-              className="rounded-lg bg-emerald-400 px-3 py-1.5 font-medium text-black transition hover:bg-emerald-300 disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-success px-3 py-1.5 font-medium text-black transition-[filter,transform] duration-150 ease-out hover:brightness-105 active:translate-y-px disabled:pointer-events-none disabled:opacity-40"
             >
+              {busyId === id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               {busyId === id ? "Finalizing…" : "Finalize"}
             </button>
           </li>
         ))}
       </ul>
-      {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
+      {error && <p className="mt-2 text-xs text-danger">{error}</p>}
     </div>
   );
 }

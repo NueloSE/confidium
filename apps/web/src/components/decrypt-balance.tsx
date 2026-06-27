@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { useAccount, useReadContract, useSignTypedData } from "wagmi";
 import { formatUnits } from "viem";
+import { Eye, EyeOff, Loader2, Lock } from "lucide-react";
 import { erc7984Abi } from "@confidium/core";
 import { getFhevmInstance } from "@/lib/fhevm";
+import { cn } from "./ui/cn";
 
 type DecryptSession = {
   publicKey: string;
@@ -127,30 +129,48 @@ export function DecryptBalance({
     }
   }
 
+  const revealed = value != null;
+
   return (
-    <div className="rounded-xl border border-neutral-900 bg-neutral-950/40 px-5 py-4">
+    <div
+      className={cn(
+        "rounded-2xl border bg-surface px-5 py-4 transition-colors duration-300",
+        revealed ? "border-success/25" : "border-hairline",
+      )}
+    >
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-xs text-neutral-500">Your confidential {symbol} balance</div>
-          <div className="text-lg font-semibold text-neutral-100">
-            {value != null ? (
-              <>
-                {value} <span className="text-sm text-neutral-500">{symbol}</span>
-              </>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-xs text-zinc-500">
+            <span>Your confidential {symbol} balance</span>
+            {!revealed && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent-hover">
+                <Lock className="h-3 w-3" /> encrypted
+              </span>
+            )}
+          </div>
+          <div className="mt-1.5 text-2xl font-semibold tracking-tight">
+            {revealed ? (
+              <span className="animate-reveal font-mono tabular-nums text-success">
+                {value} <span className="text-sm font-normal text-zinc-500">{symbol}</span>
+              </span>
             ) : (
-              <span className="text-neutral-400">🔒 encrypted</span>
+              <span className="font-mono tabular-nums text-zinc-400" aria-hidden>
+                <span className="encrypted-blur">8,675,309</span>{" "}
+                <span className="text-sm text-zinc-600">{symbol}</span>
+              </span>
             )}
           </div>
         </div>
-        {value != null ? (
+        {revealed ? (
           <button
             type="button"
             onClick={() => {
               setValue(null);
               onValue?.(null);
             }}
-            className="shrink-0 rounded-lg border border-neutral-700 px-3 py-2 text-xs text-neutral-200 transition hover:bg-neutral-900"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-hairline bg-white/3 px-3 py-2 text-xs font-medium text-zinc-200 transition-colors duration-150 hover:border-hairline-strong hover:bg-white/6"
           >
+            <EyeOff className="h-3.5 w-3.5" />
             Hide
           </button>
         ) : (
@@ -158,14 +178,15 @@ export function DecryptBalance({
             type="button"
             onClick={reveal}
             disabled={busy || !handle}
-            className="shrink-0 rounded-lg bg-white px-3 py-2 text-xs font-medium text-black transition hover:bg-neutral-200 disabled:opacity-40"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-xs font-medium text-accent-fg transition-[background-color,transform] duration-150 ease-out hover:bg-accent-hover active:translate-y-px disabled:pointer-events-none disabled:opacity-40"
           >
-            {busy ? "Decrypting…" : "👁 Reveal"}
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+            {busy ? "Decrypting…" : "Reveal"}
           </button>
         )}
       </div>
-      {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
-      <p className="mt-2 text-xs text-neutral-600">
+      {error && <p className="mt-2 text-xs text-danger">{error}</p>}
+      <p className="mt-2 text-xs text-zinc-600">
         Decrypted privately via EIP-712 — only you can read this value.
       </p>
     </div>

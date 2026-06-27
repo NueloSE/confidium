@@ -20,19 +20,28 @@ import {
   parseUnits,
 } from "viem";
 import { erc20Abi, erc7984Abi, SEPOLIA_CHAIN_ID } from "@confidium/core";
+import { Check, Droplets, Lock, Send, ShieldAlert, Unlock, Wallet } from "lucide-react";
 import { getFhevmInstance } from "@/lib/fhevm";
 import { DecryptBalance } from "@/components/decrypt-balance";
+import { UnwrapSteps } from "@/components/unwrap-steps";
 import type { UiPair } from "@/lib/pair";
 
 const inputCls =
-  "w-full rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-neutral-600";
+  "h-10 w-full rounded-lg border border-hairline bg-surface-2 px-3 text-sm text-zinc-100 outline-none transition-colors duration-150 placeholder:text-zinc-600 hover:border-hairline-strong focus:border-accent/70 disabled:opacity-50";
+// Card primary action (initiate) — violet. Confidential confirm steps use emerald below.
 const btnCls =
-  "shrink-0 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-neutral-200 disabled:opacity-40";
+  "inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-accent px-4 text-sm font-medium text-accent-fg transition-[background-color,transform] duration-150 ease-out hover:bg-accent-hover active:translate-y-px disabled:pointer-events-none disabled:opacity-40";
+// Confidential confirm / release — emerald (the "confirmed" moment).
+const confirmCls =
+  "inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-success px-4 text-sm font-medium text-black transition-[filter,transform] duration-150 ease-out hover:brightness-105 active:translate-y-px";
 
-function Card({ title, children }: { title: string; children: ReactNode }) {
+function Card({ title, icon, children }: { title: string; icon?: ReactNode; children: ReactNode }) {
   return (
-    <div className="rounded-xl border border-neutral-900 bg-neutral-950/40 p-5">
-      <h3 className="mb-3 text-sm font-semibold text-neutral-200">{title}</h3>
+    <div className="rounded-2xl border border-hairline bg-surface p-5">
+      <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-200">
+        {icon && <span className="text-zinc-400">{icon}</span>}
+        {title}
+      </h3>
       {children}
     </div>
   );
@@ -49,15 +58,18 @@ function TxStatus({
 }) {
   if (!hash) return null;
   return (
-    <p className="mt-2 text-xs text-neutral-500">
-      {isConfirming ? "Confirming…" : isConfirmed ? "✓ Confirmed" : "Submitted"}{" "}
+    <p className="mt-2 flex items-center gap-1.5 text-xs text-zinc-500">
+      <span className="inline-flex items-center gap-1.5">
+        {isConfirming && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-warn" />}
+        {isConfirming ? "Confirming…" : isConfirmed ? "Confirmed" : "Submitted"}
+      </span>
       <a
-        className="underline transition hover:text-neutral-300"
+        className="underline decoration-zinc-700 underline-offset-2 transition-colors hover:text-zinc-300"
         href={`https://sepolia.etherscan.io/tx/${hash}`}
         target="_blank"
         rel="noreferrer"
       >
-        view tx
+        view tx ↗
       </a>
     </p>
   );
@@ -66,10 +78,11 @@ function TxStatus({
 /** Persistent success line, decoupled from form state so a card can reset after a tx confirms. */
 function ResultLine({ hash, label }: { hash: `0x${string}`; label: string }) {
   return (
-    <p className="mt-2 text-xs text-emerald-400">
-      ✓ {label} —{" "}
+    <p className="mt-2 flex items-center gap-1.5 text-xs text-success">
+      <Check className="h-3.5 w-3.5" />
+      {label} —{" "}
       <a
-        className="underline transition hover:text-emerald-300"
+        className="underline decoration-success/40 underline-offset-2 transition-colors hover:text-success/80"
         href={`https://sepolia.etherscan.io/tx/${hash}`}
         target="_blank"
         rel="noreferrer"
@@ -115,16 +128,17 @@ function BalanceBar({ pair, refreshKey }: { pair: UiPair; refreshKey: number }) 
   const formatted = balance != null ? formatUnits(balance, dec) : "—";
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-neutral-900 bg-neutral-950/40 px-5 py-4">
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-hairline bg-surface px-5 py-4">
       <div>
-        <div className="text-xs text-neutral-500">Your {symbol} balance</div>
-        <div className="text-lg font-semibold text-neutral-100">
-          {formatted} <span className="text-sm text-neutral-500">{symbol}</span>
+        <div className="text-xs text-zinc-500">Your {symbol} balance</div>
+        <div className="text-lg font-semibold text-zinc-100">
+          <span className="font-mono tabular-nums">{formatted}</span>{" "}
+          <span className="text-sm text-zinc-500">{symbol}</span>
         </div>
       </div>
       <button
         type="button"
-        className="shrink-0 rounded-lg border border-neutral-700 px-3 py-2 text-xs text-neutral-200 transition hover:bg-neutral-900"
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-hairline bg-white/3 px-3 py-2 text-xs font-medium text-zinc-200 transition-colors duration-150 hover:border-hairline-strong hover:bg-white/6"
         onClick={() =>
           watchAsset({
             type: "ERC20",
@@ -136,6 +150,7 @@ function BalanceBar({ pair, refreshKey }: { pair: UiPair; refreshKey: number }) 
           })
         }
       >
+        <Wallet className="h-3.5 w-3.5" />
         Add {symbol} to MetaMask
       </button>
     </div>
@@ -170,7 +185,10 @@ function FaucetCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
   }
 
   return (
-    <Card title={`Faucet — get test ${pair.underlyingMeta.symbol ?? "tokens"}`}>
+    <Card
+      title={`Faucet — get test ${pair.underlyingMeta.symbol ?? "tokens"}`}
+      icon={<Droplets className="h-4 w-4" />}
+    >
       <div className="flex gap-2">
         <input
           className={inputCls}
@@ -182,10 +200,10 @@ function FaucetCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
           {isPending ? "Claiming…" : "Claim"}
         </button>
       </div>
-      {error && <p className="mt-2 text-xs text-rose-400">{error.message.split("\n")[0]}</p>}
+      {error && <p className="mt-2 text-xs text-danger">{error.message.split("\n")[0]}</p>}
       <TxStatus hash={hash} isConfirming={isConfirming} isConfirmed={isConfirmed} />
       {doneHash && <ResultLine hash={doneHash} label="Claimed" />}
-      <p className="mt-2 text-xs text-neutral-600">Mints mock underlying tokens (max 1,000,000 / call).</p>
+      <p className="mt-2 text-xs text-zinc-600">Mints mock underlying tokens (max 1,000,000 / call).</p>
     </Card>
   );
 }
@@ -257,7 +275,10 @@ export function WrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void })
   }
 
   return (
-    <Card title={`Wrap → ${pair.wrapperMeta.symbol ?? "confidential"}`}>
+    <Card
+      title={`Wrap → ${pair.wrapperMeta.symbol ?? "confidential"}`}
+      icon={<Lock className="h-4 w-4" />}
+    >
       <div className="flex gap-2">
         <input
           className={inputCls}
@@ -284,14 +305,14 @@ export function WrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void })
         )}
       </div>
       {insufficient && (
-        <p className="mt-2 text-xs text-rose-400">
+        <p className="mt-2 text-xs text-danger">
           Insufficient {pair.underlyingMeta.symbol ?? "token"} balance — claim from the faucet first.
         </p>
       )}
-      {error && <p className="mt-2 text-xs text-rose-400">{error.message.split("\n")[0]}</p>}
+      {error && <p className="mt-2 text-xs text-danger">{error.message.split("\n")[0]}</p>}
       <TxStatus hash={hash} isConfirming={isConfirming} isConfirmed={isConfirmed} />
       {doneHash && <ResultLine hash={doneHash} label="Wrapped" />}
-      <p className="mt-2 text-xs text-neutral-600">
+      <p className="mt-2 text-xs text-zinc-600">
         {needsApproval
           ? "Approve the wrapper to spend your tokens, then wrap."
           : "Wrap into the confidential token — your balance becomes encrypted."}
@@ -486,20 +507,16 @@ export function UnwrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void 
   function ActionButton() {
     if (phase === "ready") {
       return (
-        <button
-          className="shrink-0 rounded-lg bg-emerald-400 px-4 py-2 text-sm font-medium text-black transition hover:bg-emerald-300"
-          onClick={confirmBurn}
-        >
+        <button className={confirmCls} onClick={confirmBurn}>
+          <Check className="h-4 w-4" />
           Confirm unwrap
         </button>
       );
     }
     if (phase === "finalizeReady") {
       return (
-        <button
-          className="shrink-0 rounded-lg bg-emerald-400 px-4 py-2 text-sm font-medium text-black transition hover:bg-emerald-300"
-          onClick={finalize}
-        >
+        <button className={confirmCls} onClick={finalize}>
+          <Unlock className="h-4 w-4" />
           Finalize → release
         </button>
       );
@@ -507,7 +524,7 @@ export function UnwrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void 
     if (phase === "decryptFailed") {
       return (
         <button
-          className="shrink-0 rounded-lg bg-amber-400 px-4 py-2 text-sm font-medium text-black transition hover:bg-amber-300"
+          className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-warn px-4 text-sm font-medium text-black transition-[filter,transform] duration-150 ease-out hover:brightness-105 active:translate-y-px"
           onClick={() => requestId && runDecrypt(requestId)}
         >
           Retry release
@@ -531,7 +548,7 @@ export function UnwrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void 
   }
 
   return (
-    <Card title={`Unwrap → ${symbol}`}>
+    <Card title={`Unwrap → ${symbol}`} icon={<Unlock className="h-4 w-4" />}>
       <div className="flex gap-2">
         <input
           className={inputCls}
@@ -542,24 +559,25 @@ export function UnwrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void 
         />
         <ActionButton />
       </div>
+
+      {/* Guided 2-signature flow — shown once a flow is in progress. */}
+      {phase !== "idle" && phase !== "error" && <UnwrapSteps phase={phase} />}
+
       {phase === "ready" && (
-        <p className="mt-2 text-xs text-emerald-400">
-          Encrypted ✓ — click <span className="font-medium">Confirm unwrap</span> to sign the burn.
+        <p className="mt-2 text-xs text-success">
+          Encrypted — click <span className="font-medium">Confirm unwrap</span> to sign the burn.
         </p>
       )}
-      {phase === "decrypting" && (
-        <p className="mt-2 text-xs text-amber-400">Burned ✓ — decrypting the amount…</p>
-      )}
       {phase === "finalizeReady" && (
-        <p className="mt-2 text-xs text-emerald-400">
-          Decrypted ✓ — click <span className="font-medium">Finalize</span> to release your {symbol}{" "}
-          (one more signature).
+        <p className="mt-2 text-xs text-success">
+          Decrypted — click <span className="font-medium">Finalize</span> to release your {symbol} (one
+          more signature).
         </p>
       )}
       {hash && (
-        <p className="mt-2 text-xs text-neutral-500">
+        <p className="mt-2 text-xs text-zinc-500">
           <a
-            className="underline transition hover:text-neutral-300"
+            className="underline decoration-zinc-700 underline-offset-2 transition-colors hover:text-zinc-300"
             href={`https://sepolia.etherscan.io/tx/${hash}`}
             target="_blank"
             rel="noreferrer"
@@ -568,9 +586,9 @@ export function UnwrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void 
           </a>
         </p>
       )}
-      {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
+      {error && <p className="mt-2 text-xs text-danger">{error}</p>}
       {doneHash && <ResultLine hash={doneHash} label={`Unwrapped — your ${symbol} is back`} />}
-      <p className="mt-2 text-xs text-neutral-600">
+      <p className="mt-3 text-xs text-zinc-600">
         Burns confidential tokens, decrypts the amount, then releases the ERC-20 (2 signatures).
       </p>
     </Card>
@@ -680,7 +698,7 @@ function TransferCard({
   const inputsDisabled = busy || phase === "ready";
 
   return (
-    <Card title={`Send ${symbol} privately`}>
+    <Card title={`Send ${symbol} privately`} icon={<Send className="h-4 w-4" />}>
       <div className="grid gap-2">
         <input
           className={inputCls}
@@ -698,10 +716,8 @@ function TransferCard({
             disabled={inputsDisabled}
           />
           {phase === "ready" ? (
-            <button
-              className="shrink-0 rounded-lg bg-emerald-400 px-4 py-2 text-sm font-medium text-black transition hover:bg-emerald-300"
-              onClick={confirmSend}
-            >
+            <button className={confirmCls} onClick={confirmSend}>
+              <Check className="h-4 w-4" />
               Confirm send
             </button>
           ) : (
@@ -720,26 +736,26 @@ function TransferCard({
         </div>
       </div>
       {exceedsBalance && (
-        <p className="mt-2 text-xs text-rose-400">
+        <p className="mt-2 text-xs text-danger">
           Amount exceeds your confidential balance ({formatUnits(revealedBalance ?? 0n, dec)} {symbol})
           — ERC-7984 would transfer 0. Wrap more, or lower the amount.
         </p>
       )}
       {revealedBalance == null && phase === "idle" && (
-        <p className="mt-2 text-xs text-amber-400/80">
+        <p className="mt-2 text-xs text-warn/90">
           Tip: reveal your confidential balance above first — sending more than you hold silently
           transfers 0 (no error, by design).
         </p>
       )}
       {phase === "ready" && (
-        <p className="mt-2 text-xs text-emerald-400">
-          Encrypted ✓ — click <span className="font-medium">Confirm send</span> to sign.
+        <p className="mt-2 text-xs text-success">
+          Encrypted — click <span className="font-medium">Confirm send</span> to sign.
         </p>
       )}
       {hash && (
-        <p className="mt-2 text-xs text-neutral-500">
+        <p className="mt-2 text-xs text-zinc-500">
           <a
-            className="underline transition hover:text-neutral-300"
+            className="underline decoration-zinc-700 underline-offset-2 transition-colors hover:text-zinc-300"
             href={`https://sepolia.etherscan.io/tx/${hash}`}
             target="_blank"
             rel="noreferrer"
@@ -748,9 +764,9 @@ function TransferCard({
           </a>
         </p>
       )}
-      {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
+      {error && <p className="mt-2 text-xs text-danger">{error}</p>}
       {sentHash && <ResultLine hash={sentHash} label="Sent — stays encrypted on-chain" />}
-      <p className="mt-2 text-xs text-neutral-600">
+      <p className="mt-2 text-xs text-zinc-600">
         Transfers your confidential {symbol} — the amount is never revealed publicly.
       </p>
     </Card>
@@ -768,19 +784,28 @@ export function PairActions({ pair }: { pair: UiPair }) {
 
   if (!isConnected) {
     return (
-      <p className="rounded-xl border border-neutral-900 bg-neutral-950/40 p-5 text-sm text-neutral-400">
-        Connect your wallet to use the faucet and wrap/unwrap.
-      </p>
+      <div className="flex items-center gap-3 rounded-2xl border border-hairline bg-surface p-5 text-sm text-zinc-400">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent">
+          <Wallet className="h-4 w-4" />
+        </span>
+        Connect your wallet to use the faucet, wrap, unwrap, and send.
+      </div>
     );
   }
 
   if (wrongNetwork) {
     return (
-      <div className="rounded-xl border border-amber-900/50 bg-amber-950/20 p-5 text-sm text-amber-300">
-        Wrong network.{" "}
-        <button className="underline" onClick={() => switchChain({ chainId: SEPOLIA_CHAIN_ID })}>
-          Switch to Sepolia
-        </button>
+      <div className="flex items-center gap-3 rounded-2xl border border-warn/30 bg-warn-soft p-5 text-sm text-warn">
+        <ShieldAlert className="h-5 w-5 shrink-0" />
+        <span>
+          Wrong network — confidential actions run on Sepolia.{" "}
+          <button
+            className="font-medium underline underline-offset-2 transition-colors hover:text-warn/80"
+            onClick={() => switchChain({ chainId: SEPOLIA_CHAIN_ID })}
+          >
+            Switch to Sepolia
+          </button>
+        </span>
       </div>
     );
   }
@@ -796,7 +821,7 @@ export function PairActions({ pair }: { pair: UiPair }) {
         }}
         onValue={setRevealed}
       />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <FaucetCard pair={pair} onDone={bump} />
         <WrapCard pair={pair} onDone={bump} />
         <UnwrapCard pair={pair} onDone={bump} />

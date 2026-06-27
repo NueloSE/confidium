@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { getAddress } from "viem";
 import { enrichPairs, SEPOLIA_CHAIN_ID } from "@confidium/core";
 import { AddressChip } from "@/components/address-chip";
 import { BadgePill } from "@/components/badge";
 import { PairActions } from "@/components/pair-actions";
 import { PendingUnwraps } from "@/components/pending-unwraps";
+import { InfoTip } from "@/components/ui/tooltip";
 import { getServerClient } from "@/lib/clients";
 import { toUiPair } from "@/lib/pair";
 import { getPairsCached } from "@/lib/registry-data";
@@ -14,11 +16,29 @@ export const revalidate = 60;
 
 const EXPLORER = "https://sepolia.etherscan.io";
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Meta({
+  label,
+  help,
+  children,
+}: {
+  label: string;
+  help?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <span className="text-neutral-500">{label}</span>
-      <span className="text-neutral-200">{children}</span>
+    <div className="flex flex-col gap-1">
+      <span className="text-xs text-zinc-500">
+        {help ? (
+          <InfoTip label={help}>
+            <span className="cursor-default decoration-dotted underline-offset-2 hover:underline">
+              {label}
+            </span>
+          </InfoTip>
+        ) : (
+          label
+        )}
+      </span>
+      <span className="text-sm text-zinc-200">{children}</span>
     </div>
   );
 }
@@ -59,33 +79,64 @@ export default async function PairPage({
 
   if (!pair) notFound();
 
+  const symbol = pair.wrapperMeta.symbol ?? "Pair";
+
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
-      <Link href="/" className="text-xs text-neutral-500 transition hover:text-neutral-300">
-        ← All pairs
+      <Link
+        href="/"
+        className="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors duration-150 hover:text-zinc-200"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        All pairs
       </Link>
 
-      <div className="mb-6 mt-3 flex items-center gap-3">
-        <h1 className="text-2xl font-bold tracking-tight">{pair.wrapperMeta.symbol ?? "Pair"}</h1>
-        <BadgePill badge={pair.badge} />
+      {/* Token header */}
+      <div className="mt-5 rounded-2xl border border-hairline bg-surface p-6">
+        <div className="flex items-start gap-4">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[linear-gradient(135deg,#7c5cff,#38bdf8)] font-mono text-lg font-semibold text-white">
+            {symbol.slice(0, 1)}
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight text-zinc-50">{symbol}</h1>
+              <BadgePill badge={pair.badge} />
+            </div>
+            <p className="mt-1 truncate text-sm text-zinc-400">
+              {pair.wrapperMeta.name ?? "Confidential ERC-7984 token"}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-5 border-t border-hairline pt-5 sm:grid-cols-2">
+          <Meta
+            label="Confidential (ERC-7984)"
+            help="The confidential wrapper. Balances and transfers are encrypted on-chain."
+          >
+            <AddressChip address={pair.wrapper} explorerBase={EXPLORER} />
+          </Meta>
+          <Meta label="Underlying (ERC-20)" help="The standard token this wrapper represents.">
+            <AddressChip address={pair.underlying} explorerBase={EXPLORER} />
+          </Meta>
+          <Meta label="Decimals">
+            <span className="font-mono">{pair.wrapperMeta.decimals ?? "—"}</span>
+          </Meta>
+          <Meta
+            label="Rate"
+            help="Confidential units per underlying base unit (6-decimal conversion)."
+          >
+            <span className="font-mono">{pair.rate ?? "—"}</span>
+          </Meta>
+        </div>
       </div>
 
-      <div className="mb-6 grid gap-2 rounded-xl border border-neutral-900 bg-neutral-950/40 p-5 text-sm">
-        <Row label="Confidential (ERC-7984)">
-          <AddressChip address={pair.wrapper} explorerBase={EXPLORER} />
-        </Row>
-        <Row label="Underlying (ERC-20)">
-          <AddressChip address={pair.underlying} explorerBase={EXPLORER} />
-        </Row>
-        <Row label="Decimals">{pair.wrapperMeta.decimals ?? "—"}</Row>
-        <Row label="Rate">{pair.rate ?? "—"}</Row>
+      <div className="mt-6">
+        <PairActions pair={pair} />
+        <PendingUnwraps
+          wrapper={pair.wrapper as `0x${string}`}
+          symbol={pair.underlyingMeta.symbol ?? "token"}
+        />
       </div>
-
-      <PairActions pair={pair} />
-      <PendingUnwraps
-        wrapper={pair.wrapper as `0x${string}`}
-        symbol={pair.underlyingMeta.symbol ?? "token"}
-      />
     </main>
   );
 }
