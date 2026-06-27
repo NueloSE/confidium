@@ -9,7 +9,11 @@ export const revalidate = 60;
 
 function Notice({ children }: { children: React.ReactNode }) {
   return (
-    <main className="mx-auto max-w-md px-4 py-6 text-sm text-neutral-400">{children}</main>
+    <main className="mx-auto max-w-md px-4 py-6">
+      <div className="rounded-2xl border border-hairline bg-surface p-5 text-sm leading-relaxed text-zinc-400 [&_code]:rounded [&_code]:bg-surface-2 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-zinc-300">
+        {children}
+      </div>
+    </main>
   );
 }
 

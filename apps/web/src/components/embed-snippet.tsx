@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Check, Copy } from "lucide-react";
 
 /** Shows the iframe embed snippet with the live origin pre-filled (no placeholder to guess at). */
 export function EmbedSnippet({ token }: { token: string }) {
@@ -19,20 +20,26 @@ export function EmbedSnippet({ token }: { token: string }) {
 ></iframe>`;
 
   return (
-    <div className="relative mt-4">
-      <pre className="overflow-x-auto rounded-xl border border-neutral-800 bg-neutral-950 p-4 pr-16 text-xs leading-relaxed text-neutral-300">
+    <div className="group relative mt-4">
+      <pre className="overflow-x-auto rounded-xl border border-hairline bg-surface-2 p-4 pr-16 font-mono text-xs leading-relaxed text-zinc-300">
         <code>{snippet}</code>
       </pre>
       <button
         type="button"
+        aria-label={copied ? "Copied" : "Copy embed snippet"}
         onClick={() => {
           void navigator.clipboard.writeText(snippet);
           setCopied(true);
           setTimeout(() => setCopied(false), 1500);
         }}
-        className="absolute right-2 top-2 rounded-md border border-neutral-700 bg-neutral-900 px-2.5 py-1 text-xs text-neutral-200 transition hover:bg-neutral-800"
+        className={`absolute right-2 top-2 inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors duration-150 ${
+          copied
+            ? "border-success/30 bg-success-soft text-success"
+            : "border-hairline bg-surface text-zinc-300 hover:border-hairline-strong hover:bg-elevated"
+        }`}
       >
-        {copied ? "Copied ✓" : "Copy"}
+        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+        {copied ? "Copied" : "Copy"}
       </button>
     </div>
   );
