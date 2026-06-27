@@ -1,19 +1,50 @@
 import { BADGE_META, type Badge } from "@confidium/core";
+import { InfoTip } from "./ui/tooltip";
+import { cn } from "./ui/cn";
 
-const toneClasses: Record<string, string> = {
-  good: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30",
-  info: "bg-sky-500/15 text-sky-300 ring-sky-500/30",
-  warn: "bg-amber-500/15 text-amber-300 ring-amber-500/30",
-  bad: "bg-rose-500/15 text-rose-300 ring-rose-500/30",
+/** Per-provenance color + a plain-language explanation surfaced on hover. */
+const STYLES: Record<Badge, { pill: string; dot: string; help: string }> = {
+  official: {
+    pill: "bg-success-soft text-success ring-success/25",
+    dot: "bg-success",
+    help: "Present in the on-chain Zama registry, valid, and implements the ERC-7984 confidential-token interface.",
+  },
+  mock: {
+    pill: "bg-info-soft text-info ring-info/25",
+    dot: "bg-info",
+    help: "An official testnet mock token — mint some from the faucet to try the wrap/unwrap flow on Sepolia.",
+  },
+  custom: {
+    pill: "bg-accent-soft text-accent-hover ring-accent/30",
+    dot: "bg-accent",
+    help: "Added via the in-app form or committed config — never shown as Official. The on-chain registry stays the source of truth.",
+  },
+  unverified: {
+    pill: "bg-warn-soft text-warn ring-warn/25",
+    dot: "bg-warn",
+    help: "In the registry but failed a check (ERC-165 interface or the bidirectional underlying↔wrapper link).",
+  },
+  revoked: {
+    pill: "bg-danger-soft text-danger ring-danger/25",
+    dot: "bg-danger",
+    help: "No longer valid in the registry.",
+  },
 };
 
-export function BadgePill({ badge }: { badge: Badge }) {
+export function BadgePill({ badge, showDot = true }: { badge: Badge; showDot?: boolean }) {
   const meta = BADGE_META[badge];
+  const s = STYLES[badge];
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${toneClasses[meta.tone]}`}
-    >
-      {meta.label}
-    </span>
+    <InfoTip label={s.help}>
+      <span
+        className={cn(
+          "inline-flex cursor-default items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
+          s.pill,
+        )}
+      >
+        {showDot && <span className={cn("h-1.5 w-1.5 rounded-full", s.dot)} aria-hidden />}
+        {meta.label}
+      </span>
+    </InfoTip>
   );
 }
