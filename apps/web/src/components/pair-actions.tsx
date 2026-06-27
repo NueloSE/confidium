@@ -10,7 +10,15 @@ import {
   useWatchAsset,
   useWriteContract,
 } from "wagmi";
-import { bytesToHex, encodeFunctionData, formatUnits, parseEventLogs, parseUnits } from "viem";
+import {
+  bytesToHex,
+  encodeFunctionData,
+  formatUnits,
+  getAddress,
+  isAddress,
+  parseEventLogs,
+  parseUnits,
+} from "viem";
 import { erc20Abi, erc7984Abi, SEPOLIA_CHAIN_ID } from "@confidium/core";
 import { getFhevmInstance } from "@/lib/fhevm";
 import { DecryptBalance } from "@/components/decrypt-balance";
@@ -50,6 +58,23 @@ function TxStatus({
         rel="noreferrer"
       >
         view tx
+      </a>
+    </p>
+  );
+}
+
+/** Persistent success line, decoupled from form state so a card can reset after a tx confirms. */
+function ResultLine({ hash, label }: { hash: `0x${string}`; label: string }) {
+  return (
+    <p className="mt-2 text-xs text-emerald-400">
+      ✓ {label} —{" "}
+      <a
+        className="underline transition hover:text-emerald-300"
+        href={`https://sepolia.etherscan.io/tx/${hash}`}
+        target="_blank"
+        rel="noreferrer"
+      >
+        view tx ↗
       </a>
     </p>
   );
@@ -121,15 +146,21 @@ function FaucetCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
   const dec = pair.underlyingMeta.decimals ?? 18;
   const [amount, setAmount] = useState("1000");
   const { address } = useAccount();
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { writeContract, data: hash, isPending, error, reset } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+  const [doneHash, setDoneHash] = useState<`0x${string}` | undefined>();
 
   useEffect(() => {
-    if (isConfirmed) onDone();
-  }, [isConfirmed, onDone]);
+    if (isConfirmed && hash) {
+      setDoneHash(hash);
+      onDone();
+      reset();
+    }
+  }, [isConfirmed, hash, onDone, reset]);
 
   function claim() {
     if (!address) return;
+    setDoneHash(undefined);
     writeContract({
       address: pair.underlying as `0x${string}`,
       abi: erc20Abi,
@@ -153,6 +184,7 @@ function FaucetCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
       </div>
       {error && <p className="mt-2 text-xs text-rose-400">{error.message.split("\n")[0]}</p>}
       <TxStatus hash={hash} isConfirming={isConfirming} isConfirmed={isConfirmed} />
+      {doneHash && <ResultLine hash={doneHash} label="Claimed" />}
       <p className="mt-2 text-xs text-neutral-600">Mints mock underlying tokens (max 1,000,000 / call).</p>
     </Card>
   );
@@ -172,19 +204,38 @@ function WrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
     query: { enabled: Boolean(address) },
   });
 
-  const needsApproval = allowance == null || allowance < amountWei;
+  const { data: balance } = useReadContract({
+    address: pair.underlying as `0x${string}`,
+    abi: erc20Abi,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: { enabled: Boolean(address), refetchInterval: 12_000 },
+  });
 
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const needsApproval = allowance == null || allowance < amountWei;
+  const insufficient = balance != null && amountWei > 0n && amountWei > balance;
+
+  const { writeContract, data: hash, isPending, error, reset } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+  const [lastAction, setLastAction] = useState<"approve" | "wrap" | null>(null);
+  const [doneHash, setDoneHash] = useState<`0x${string}` | undefined>();
 
   useEffect(() => {
-    if (isConfirmed) {
-      void refetchAllowance();
-      onDone();
+    if (!isConfirmed) return;
+    void refetchAllowance();
+    onDone();
+    // Reset only after the wrap itself (not after the approval step).
+    if (lastAction === "wrap" && hash) {
+      setDoneHash(hash);
+      setAmount("100");
+      setLastAction(null);
+      reset();
     }
-  }, [isConfirmed, onDone, refetchAllowance]);
+  }, [isConfirmed, hash, lastAction, onDone, refetchAllowance, reset]);
 
   function approve() {
+    setDoneHash(undefined);
+    setLastAction("approve");
     writeContract({
       address: pair.underlying as `0x${string}`,
       abi: erc20Abi,
@@ -195,6 +246,8 @@ function WrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
 
   function wrap() {
     if (!address) return;
+    setDoneHash(undefined);
+    setLastAction("wrap");
     writeContract({
       address: pair.wrapper as `0x${string}`,
       abi: erc7984Abi,
@@ -213,17 +266,31 @@ function WrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
           inputMode="decimal"
         />
         {needsApproval ? (
-          <button className={btnCls} onClick={approve} disabled={isPending || amountWei === 0n}>
+          <button
+            className={btnCls}
+            onClick={approve}
+            disabled={isPending || amountWei === 0n || insufficient}
+          >
             {isPending ? "…" : "Approve"}
           </button>
         ) : (
-          <button className={btnCls} onClick={wrap} disabled={isPending || amountWei === 0n}>
+          <button
+            className={btnCls}
+            onClick={wrap}
+            disabled={isPending || amountWei === 0n || insufficient}
+          >
             {isPending ? "…" : "Wrap"}
           </button>
         )}
       </div>
+      {insufficient && (
+        <p className="mt-2 text-xs text-rose-400">
+          Insufficient {pair.underlyingMeta.symbol ?? "token"} balance — claim from the faucet first.
+        </p>
+      )}
       {error && <p className="mt-2 text-xs text-rose-400">{error.message.split("\n")[0]}</p>}
       <TxStatus hash={hash} isConfirming={isConfirming} isConfirmed={isConfirmed} />
+      {doneHash && <ResultLine hash={doneHash} label="Wrapped" />}
       <p className="mt-2 text-xs text-neutral-600">
         {needsApproval
           ? "Approve the wrapper to spend your tokens, then wrap."
@@ -263,6 +330,7 @@ function UnwrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
     null,
   );
   const [hash, setHash] = useState<`0x${string}` | undefined>();
+  const [doneHash, setDoneHash] = useState<`0x${string}` | undefined>();
   const [error, setError] = useState<string | null>(null);
 
   const { data: receipt } = useWaitForTransactionReceipt({ hash });
@@ -328,7 +396,13 @@ function UnwrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
         setError("The finalize transaction reverted.");
         setPhase("error");
       } else {
-        setPhase("done");
+        // Success: confirm via doneHash, then reset to a clean idle state.
+        setDoneHash(receipt.transactionHash);
+        setHash(undefined);
+        setRequestId(null);
+        setFinalizeData(null);
+        setAmount("50");
+        setPhase("idle");
         onDone();
       }
     }
@@ -341,6 +415,7 @@ function UnwrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
     if (!address) return;
     setError(null);
     setHash(undefined);
+    setDoneHash(undefined);
     setRequestId(null);
     setFinalizeData(null);
     try {
@@ -494,11 +569,189 @@ function UnwrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
         </p>
       )}
       {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
-      {phase === "done" && (
-        <p className="mt-2 text-xs text-emerald-400">✓ Unwrapped — your {symbol} balance is back up.</p>
-      )}
+      {doneHash && <ResultLine hash={doneHash} label={`Unwrapped — your ${symbol} is back`} />}
       <p className="mt-2 text-xs text-neutral-600">
         Burns confidential tokens, decrypts the amount, then releases the ERC-20 (2 signatures).
+      </p>
+    </Card>
+  );
+}
+
+type TransferPhase = "idle" | "encrypting" | "ready" | "sending" | "done" | "error";
+
+function TransferCard({
+  pair,
+  onDone,
+  revealedBalance,
+}: {
+  pair: UiPair;
+  onDone: () => void;
+  revealedBalance?: bigint | null;
+}) {
+  const dec = pair.wrapperMeta.decimals ?? 6;
+  const symbol = pair.wrapperMeta.symbol ?? "confidential";
+  const { address, connector } = useAccount();
+  const [to, setTo] = useState("");
+  const [amount, setAmount] = useState("10");
+  const [phase, setPhase] = useState<TransferPhase>("idle");
+  const [prepared, setPrepared] = useState<{ handle: `0x${string}`; proof: `0x${string}` } | null>(
+    null,
+  );
+  const [hash, setHash] = useState<`0x${string}` | undefined>();
+  const [sentHash, setSentHash] = useState<`0x${string}` | undefined>();
+  const [error, setError] = useState<string | null>(null);
+
+  const { data: receipt } = useWaitForTransactionReceipt({ hash });
+  const recipientValid = isAddress(to.trim());
+  const amountWei = safeParse(amount, dec);
+  const exceedsBalance = revealedBalance != null && amountWei > revealedBalance;
+
+  async function sendTx(data: `0x${string}`, gasLimit: number): Promise<`0x${string}`> {
+    const provider = (await connector?.getProvider()) as InjectedProvider | undefined;
+    if (!provider) throw new Error("No provider from the connected wallet.");
+    return (await provider.request({
+      method: "eth_sendTransaction",
+      params: [{ from: address, to: pair.wrapper, data, gas: `0x${gasLimit.toString(16)}` }],
+    })) as `0x${string}`;
+  }
+
+  useEffect(() => {
+    if (!receipt || phase !== "sending") return;
+    if (receipt.status === "reverted") {
+      setError("The transfer transaction reverted.");
+      setPhase("error");
+    } else {
+      // Success: confirm via sentHash, then reset the form to a clean idle state.
+      setSentHash(receipt.transactionHash);
+      setHash(undefined);
+      setPrepared(null);
+      setAmount("");
+      setPhase("idle");
+      onDone();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [receipt]);
+
+  // Step 1 — encrypt the amount (kept separate so the wallet popup later fires in a fresh gesture).
+  async function prepare() {
+    if (!address) return;
+    if (!recipientValid) {
+      setError("Enter a valid recipient address.");
+      return;
+    }
+    setError(null);
+    setHash(undefined);
+    setSentHash(undefined);
+    try {
+      setPhase("encrypting");
+      const instance = await getFhevmInstance();
+      const input = instance.createEncryptedInput(pair.wrapper, address);
+      input.add64(parseUnits(amount || "0", dec));
+      const enc = (await input.encrypt()) as unknown as { handles: unknown[]; inputProof: unknown };
+      setPrepared({ handle: toHexHandle(enc.handles[0]), proof: toHexHandle(enc.inputProof) });
+      setPhase("ready");
+    } catch (e) {
+      setError((e as Error).message.split("\n")[0] ?? "Encryption failed");
+      setPhase("error");
+    }
+  }
+
+  // Step 2 — confidentialTransfer (one tx; the amount stays encrypted end-to-end).
+  async function confirmSend() {
+    if (!prepared || !recipientValid) return;
+    setError(null);
+    try {
+      const data = encodeFunctionData({
+        abi: erc7984Abi,
+        functionName: "confidentialTransfer",
+        args: [getAddress(to.trim()), prepared.handle, prepared.proof],
+      });
+      const txHash = await sendTx(data, 2_000_000);
+      setHash(txHash);
+      setPrepared(null);
+      setPhase("sending");
+    } catch (e) {
+      setError((e as Error).message.split("\n")[0] ?? "Transfer failed");
+      setPhase("ready");
+    }
+  }
+
+  const busy = phase === "encrypting" || phase === "sending";
+  const inputsDisabled = busy || phase === "ready";
+
+  return (
+    <Card title={`Send ${symbol} privately`}>
+      <div className="grid gap-2">
+        <input
+          className={inputCls}
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+          placeholder="Recipient 0x…"
+          disabled={inputsDisabled}
+        />
+        <div className="flex gap-2">
+          <input
+            className={inputCls}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            inputMode="decimal"
+            disabled={inputsDisabled}
+          />
+          {phase === "ready" ? (
+            <button
+              className="shrink-0 rounded-lg bg-emerald-400 px-4 py-2 text-sm font-medium text-black transition hover:bg-emerald-300"
+              onClick={confirmSend}
+            >
+              Confirm send
+            </button>
+          ) : (
+            <button
+              className={btnCls}
+              onClick={prepare}
+              disabled={busy || !recipientValid || exceedsBalance || amountWei === 0n}
+            >
+              {phase === "encrypting"
+                ? "Encrypting…"
+                : phase === "sending"
+                  ? "Sending…"
+                  : "Prepare send"}
+            </button>
+          )}
+        </div>
+      </div>
+      {exceedsBalance && (
+        <p className="mt-2 text-xs text-rose-400">
+          Amount exceeds your confidential balance ({formatUnits(revealedBalance ?? 0n, dec)} {symbol})
+          — ERC-7984 would transfer 0. Wrap more, or lower the amount.
+        </p>
+      )}
+      {revealedBalance == null && phase === "idle" && (
+        <p className="mt-2 text-xs text-amber-400/80">
+          Tip: reveal your confidential balance above first — sending more than you hold silently
+          transfers 0 (no error, by design).
+        </p>
+      )}
+      {phase === "ready" && (
+        <p className="mt-2 text-xs text-emerald-400">
+          Encrypted ✓ — click <span className="font-medium">Confirm send</span> to sign.
+        </p>
+      )}
+      {hash && (
+        <p className="mt-2 text-xs text-neutral-500">
+          <a
+            className="underline transition hover:text-neutral-300"
+            href={`https://sepolia.etherscan.io/tx/${hash}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            view tx ↗
+          </a>
+        </p>
+      )}
+      {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
+      {sentHash && <ResultLine hash={sentHash} label="Sent — stays encrypted on-chain" />}
+      <p className="mt-2 text-xs text-neutral-600">
+        Transfers your confidential {symbol} — the amount is never revealed publicly.
       </p>
     </Card>
   );
@@ -510,6 +763,7 @@ export function PairActions({ pair }: { pair: UiPair }) {
   const { switchChain } = useSwitchChain();
   const wrongNetwork = chainId !== SEPOLIA_CHAIN_ID;
   const [refreshKey, setRefreshKey] = useState(0);
+  const [revealed, setRevealed] = useState<bigint | null>(null);
   const bump = () => setRefreshKey((k) => k + 1);
 
   if (!isConnected) {
@@ -540,11 +794,13 @@ export function PairActions({ pair }: { pair: UiPair }) {
           symbol: pair.wrapperMeta.symbol,
           decimals: pair.wrapperMeta.decimals,
         }}
+        onValue={setRevealed}
       />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <FaucetCard pair={pair} onDone={bump} />
         <WrapCard pair={pair} onDone={bump} />
         <UnwrapCard pair={pair} onDone={bump} />
+        <TransferCard pair={pair} onDone={bump} revealedBalance={revealed} />
       </div>
     </div>
   );

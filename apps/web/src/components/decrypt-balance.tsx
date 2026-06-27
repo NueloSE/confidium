@@ -28,7 +28,14 @@ export interface DecryptToken {
  * Reveal the connected wallet's confidential balance of ANY ERC-7984 token via EIP-712
  * user-decryption. Reused by the pair page and the universal "decrypt any token" tool.
  */
-export function DecryptBalance({ token }: { token: DecryptToken }) {
+export function DecryptBalance({
+  token,
+  onValue,
+}: {
+  token: DecryptToken;
+  /** Reports the revealed balance (base units) to a parent, or null when hidden/stale. */
+  onValue?: (clear: bigint | null) => void;
+}) {
   const dec = token.decimals ?? 6;
   const symbol = token.symbol ?? "cToken";
   const { address } = useAccount();
@@ -48,13 +55,15 @@ export function DecryptBalance({ token }: { token: DecryptToken }) {
   // Hide a previously-revealed value when the handle changes (e.g. after wrap/unwrap).
   useEffect(() => {
     setValue(null);
-  }, [handle]);
+    onValue?.(null);
+  }, [handle, onValue]);
 
   async function reveal() {
     if (!address || !handle) return;
     setError(null);
     if (handle === ZERO_HANDLE) {
       setValue("0");
+      onValue?.(0n);
       return;
     }
     setBusy(true);
@@ -108,7 +117,9 @@ export function DecryptBalance({ token }: { token: DecryptToken }) {
       )) as unknown as Record<string, bigint | boolean | string>;
 
       const clear = result[handle];
-      setValue(formatUnits(BigInt(clear ?? 0), dec));
+      const clearBig = BigInt(clear ?? 0);
+      setValue(formatUnits(clearBig, dec));
+      onValue?.(clearBig);
     } catch (e) {
       setError((e as Error).message.split("\n")[0] ?? "Decryption failed");
     } finally {
@@ -134,7 +145,10 @@ export function DecryptBalance({ token }: { token: DecryptToken }) {
         {value != null ? (
           <button
             type="button"
-            onClick={() => setValue(null)}
+            onClick={() => {
+              setValue(null);
+              onValue?.(null);
+            }}
             className="shrink-0 rounded-lg border border-neutral-700 px-3 py-2 text-xs text-neutral-200 transition hover:bg-neutral-900"
           >
             Hide

@@ -158,6 +158,19 @@ export const erc7984Abi = [
     outputs: [],
   },
   {
+    // ERC-7984 confidential transfer with an external (relayer-encrypted) amount.
+    // externalEuint64 / euint64 are bytes32 in ABI terms.
+    type: "function",
+    name: "confidentialTransfer",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "encryptedAmount", type: "bytes32" },
+      { name: "inputProof", type: "bytes" },
+    ],
+    outputs: [{ type: "bytes32" }],
+  },
+  {
     type: "function",
     name: "setOperator",
     stateMutability: "nonpayable",
