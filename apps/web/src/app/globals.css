@@ -1,10 +1,51 @@
 @import "tailwindcss";
 
-:root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+/* ----------------------------------------------------------------------------
+   Confidium design tokens — "Encrypted Workstation"
+   One violet accent (privacy identity) + emerald for revealed/confirmed values,
+   on a disciplined zinc ramp over near-black. Tailwind v4 @theme generates the
+   utilities (bg-canvas, text-accent, border-hairline, font-mono, …).
+---------------------------------------------------------------------------- */
+@theme {
+  /* Surfaces */
+  --color-canvas: #0a0a0b;
+  --color-surface: #141416;
+  --color-surface-2: #0e0e10;
+  --color-elevated: #1b1b1f;
+
+  /* Hairline borders (white at low alpha) */
+  --color-hairline: rgba(255, 255, 255, 0.08);
+  --color-hairline-strong: rgba(255, 255, 255, 0.14);
+
+  /* Accent — violet / indigo (privacy + cryptography) */
+  --color-accent: #7c5cff;
+  --color-accent-hover: #8e72ff;
+  --color-accent-fg: #ffffff;
+  --color-accent-soft: rgba(124, 92, 255, 0.12);
+  --color-accent-ring: rgba(124, 92, 255, 0.5);
+
+  /* Semantic states */
+  --color-success: #34d399; /* revealed values + confirms only */
+  --color-success-soft: rgba(52, 211, 153, 0.12);
+  --color-warn: #fbbf24;
+  --color-warn-soft: rgba(251, 191, 36, 0.1);
+  --color-danger: #fb7185;
+  --color-danger-soft: rgba(251, 113, 133, 0.1);
+  --color-info: #38bdf8;
+  --color-info-soft: rgba(56, 189, 248, 0.12);
+
+  /* Type */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", "Menlo", monospace;
+
+  /* Motion */
+  --ease-out-soft: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-soft: cubic-bezier(0.4, 0, 1, 1);
 }
 
+/* ----------------------------------------------------------------------------
+   Base
+---------------------------------------------------------------------------- */
 html,
 body {
   max-width: 100vw;
@@ -12,8 +53,135 @@ body {
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans, ui-sans-serif, system-ui, sans-serif);
+  background: var(--color-canvas);
+  color: var(--color-zinc-100);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Tabular numerals everywhere amounts/addresses live */
+.font-mono {
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Accent text selection */
+::selection {
+  background: var(--color-accent-soft);
+  color: #fff;
+}
+
+/* Restrained custom scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+  background-clip: content-box;
+}
+
+/* Consistent, accent focus ring for keyboard users */
+:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-canvas),
+    0 0 0 4px var(--color-accent-ring);
+  border-radius: inherit;
+}
+
+/* ----------------------------------------------------------------------------
+   Signature surfaces
+---------------------------------------------------------------------------- */
+
+/* Faint violet radial glow behind the hero (no flat pure-black) */
+.hero-glow::before {
+  content: "";
+  position: absolute;
+  inset: -40% 0 auto 0;
+  height: 620px;
+  z-index: -1;
+  background:
+    radial-gradient(60% 60% at 50% 0%, rgba(124, 92, 255, 0.22), transparent 70%),
+    radial-gradient(40% 40% at 80% 10%, rgba(56, 189, 248, 0.08), transparent 70%);
+  pointer-events: none;
+}
+
+/* Subtle dotted grid texture for large empty surfaces */
+.bg-dotgrid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* Encrypted value — blurred + unselectable until revealed */
+.encrypted-blur {
+  filter: blur(7px);
+  user-select: none;
+  pointer-events: none;
+}
+
+/* ----------------------------------------------------------------------------
+   Motion (respects reduced-motion)
+---------------------------------------------------------------------------- */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes reveal-pop {
+  0% {
+    opacity: 0;
+    filter: blur(8px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-fade-up {
+    animation: fade-up 0.45s var(--ease-out-soft) both;
+  }
+  .animate-reveal {
+    animation: reveal-pop 0.4s var(--ease-out-soft) both;
+  }
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.06),
+      transparent
+    );
+    animation: shimmer 1.6s infinite;
+  }
 }
