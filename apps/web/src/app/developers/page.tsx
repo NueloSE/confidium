@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { EmbedSnippet } from "@/components/embed-snippet";
 
 export const metadata: Metadata = {
   title: "Developers — Confidium",
@@ -7,13 +8,6 @@ export const metadata: Metadata = {
 
 // cUSDTMock on Sepolia — used for the live embed preview.
 const SAMPLE_TOKEN = "0x4E7B06D78965594eB5EF5414c357ca21E1554491";
-
-const SNIPPET = `<iframe
-  src="https://YOUR-CONFIDIUM-URL/embed?token=${SAMPLE_TOKEN}"
-  width="420"
-  height="600"
-  style="border:0;border-radius:16px"
-></iframe>`;
 
 export default function DevelopersPage() {
   return (
@@ -30,9 +24,7 @@ export default function DevelopersPage() {
             Add a wrap/unwrap box to your own site with one line. Your users connect their wallet and
             wrap/unwrap — all the FHE encryption is handled by Confidium, invisibly.
           </p>
-          <pre className="mt-4 overflow-x-auto rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-xs leading-relaxed text-neutral-300">
-            <code>{SNIPPET}</code>
-          </pre>
+          <EmbedSnippet token={SAMPLE_TOKEN} />
           <p className="mt-3 text-xs text-neutral-500">
             Params: <code className="text-neutral-300">token</code> (ERC-7984 address), optional{" "}
             <code className="text-neutral-300">u</code> (underlying, for custom pairs), and{" "}

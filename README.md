@@ -26,10 +26,12 @@ The Zama Wrappers Registry is an on‑chain directory that maps standard ERC‑2
 | 🪙 | **Faucet** | Mint official Sepolia `cTokenMock` underlyings to test with. |
 | 📦 | **Wrap** | ERC‑20 → confidential ERC‑7984 (approve + wrap). |
 | 🔓 | **Unwrap** | Full async protocol: burn → public‑decrypt → finalize, driven entirely by the dApp. |
+| 💸 | **Confidential send** | Transfer an ERC‑7984 to anyone — the amount stays **encrypted end‑to‑end** (one tx, no decrypt). |
 | 👁️ | **Reveal balance** | EIP‑712 user‑decrypt of your confidential balance, with session caching. |
 | 🌐 | **Decrypt *any* ERC‑7984** | Paste any confidential token address — auto‑validates via ERC‑165 and decrypts. Not limited to the registry. |
 | ♻️ | **Pending‑unwrap recovery** | Detects unwraps that were burned but never finalized (e.g. a closed tab) and lets you finalize them. Funds never get stuck. |
 | ➕ | **Hybrid registry + add‑a‑pair** | On‑chain registry is the source of truth; add extra pairs via the in‑app form or committed config. See [below](#adding-a-pair). |
+| 🧩 | **Embeddable widget** | Drop a wrap/unwrap box into any site with one `<iframe>`. See [Building on Confidium](#building-on-confidium). |
 | 🧱 | **Developer SDK + token list** | `@confidium/core` package and a [tokenlists.org](https://tokenlists.org)‑schema export at `/api/token-list`. |
 
 ## Supported networks
@@ -93,8 +95,8 @@ A pnpm + Turborepo monorepo:
 confidium/
 ├── apps/web/            Next.js 15 (App Router) — the dApp
 │   └── src/
-│       ├── app/         explorer, pair detail, /decrypt, /add-pair, /api/*
-│       ├── components/  table, pair actions (faucet/wrap/unwrap), decrypt, recovery
+│       ├── app/         explorer, pair detail, /decrypt, /add-pair, /embed, /developers, /api/*
+│       ├── components/  table, pair actions (faucet/wrap/unwrap/send), decrypt, recovery, embed widget
 │       └── lib/         viem clients, wagmi, fhEVM SDK, registry cache, custom pairs
 ├── packages/core/       @confidium/core — framework-agnostic registry SDK
 │   └── src/             chains, ABIs, registry reads (enrichPairs), verification, types
@@ -106,6 +108,24 @@ confidium/
 **Token list:** `GET /api/token-list` returns the verified wrappers in [tokenlists.org](https://tokenlists.org) schema so other apps can consume Confidium's canonical list with one URL.
 - `?include=mock` — include testnet mocks (default: official only)
 - `?chainId=11155111|1` — narrow to one network (default: both)
+
+## <a name="building-on-confidium"></a>Building on Confidium (composable privacy)
+
+**Embeddable wrap widget.** Any site can drop a confidential wrap/unwrap box in with a single `<iframe>` — the FHE plumbing is handled by Confidium. Visit **`/developers`** for a copy‑paste snippet (with your live domain pre‑filled) and a live preview.
+
+```html
+<iframe
+  src="https://YOUR-CONFIDIUM-DOMAIN/embed?token=0x4E7B06D78965594eB5EF5414c357ca21E1554491"
+  width="420" height="600" style="border:0;border-radius:16px">
+</iframe>
+```
+
+`YOUR-CONFIDIUM-DOMAIN` is simply wherever you deployed the app (e.g. `confidium.vercel.app`) — one URL, the same for everyone; the iframe's visitor connects their own wallet. Query params on `/embed`:
+- `token` — the ERC‑7984 wrapper address (required)
+- `u` — its underlying ERC‑20 (only needed for custom pairs not in the registry)
+- `action` — `wrap` (default) or `unwrap`
+
+> Cross‑origin embedding requires the **host page** to send a `Cross-Origin-Embedder-Policy` header — the relayer SDK needs cross‑origin isolation. Same‑origin embeds (like the `/developers` preview) work out of the box.
 
 ## How confidential ops work (the tricky bits)
 
