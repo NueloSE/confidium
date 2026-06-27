@@ -2,6 +2,8 @@
 
 import { useAccount, useConnect, useDisconnect, useChainId, useSwitchChain } from "wagmi";
 import { sepolia } from "wagmi/chains";
+import { Loader2, LogOut, Wallet } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 function short(addr: string) {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
@@ -17,14 +19,17 @@ export function ConnectButton() {
   if (!isConnected) {
     const injected = connectors.find((c) => c.type === "injected") ?? connectors[0];
     return (
-      <button
-        type="button"
+      <Button
         disabled={isPending || !injected}
         onClick={() => injected && connect({ connector: injected })}
-        className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-neutral-200 disabled:opacity-50"
       >
-        {isPending ? "Connecting…" : "Connect Wallet"}
-      </button>
+        {isPending ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Wallet className="h-4 w-4" />
+        )}
+        {isPending ? "Connecting…" : "Connect wallet"}
+      </Button>
     );
   }
 
@@ -32,21 +37,29 @@ export function ConnectButton() {
 
   return (
     <div className="flex items-center gap-2">
-      {wrongNetwork && (
-        <button
-          type="button"
-          onClick={() => switchChain({ chainId: sepolia.id })}
-          className="rounded-lg bg-amber-500/90 px-3 py-2 text-xs font-medium text-black transition hover:bg-amber-400"
-        >
+      {wrongNetwork ? (
+        <Button variant="warn" size="sm" onClick={() => switchChain({ chainId: sepolia.id })}>
+          <span className="h-1.5 w-1.5 rounded-full bg-black/60" />
           Switch to Sepolia
-        </button>
+        </Button>
+      ) : (
+        <span className="hidden h-9 items-center gap-1.5 rounded-lg border border-hairline bg-white/3 px-2.5 text-xs font-medium text-zinc-300 sm:inline-flex">
+          <span className="h-1.5 w-1.5 rounded-full bg-success shadow-[0_0_8px_0] shadow-success/60" />
+          Sepolia
+        </span>
       )}
       <button
         type="button"
         onClick={() => disconnect()}
-        className="rounded-lg border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-200 transition hover:bg-neutral-900"
+        title="Disconnect"
+        className="group inline-flex h-9 items-center gap-2 rounded-lg border border-hairline bg-white/3 pl-1.5 pr-2.5 text-sm font-medium text-zinc-200 transition-colors duration-150 hover:border-hairline-strong hover:bg-white/6"
       >
-        {address ? short(address) : "Disconnect"}
+        <span
+          className="h-5 w-5 rounded-full bg-[linear-gradient(135deg,#7c5cff,#38bdf8)]"
+          aria-hidden
+        />
+        <span className="font-mono text-xs">{address ? short(address) : "Connected"}</span>
+        <LogOut className="h-3.5 w-3.5 text-zinc-500 transition-colors duration-150 group-hover:text-zinc-300" />
       </button>
     </div>
   );
