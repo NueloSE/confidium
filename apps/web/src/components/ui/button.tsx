@@ -7,7 +7,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // The single primary action on a surface — violet.
+        // The single primary action on a surface — brand amber.
         primary:
           "bg-accent text-accent-fg hover:bg-accent-hover shadow-[0_10px_30px_-12px_rgba(124,92,255,0.7)]",
         // Reserved for "revealed / confirmed" confidential moments.

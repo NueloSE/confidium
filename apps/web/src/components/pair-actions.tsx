@@ -28,7 +28,7 @@ import type { UiPair } from "@/lib/pair";
 
 const inputCls =
   "h-10 w-full rounded-lg border border-hairline bg-surface-2 px-3 text-sm text-zinc-100 outline-none transition-colors duration-150 placeholder:text-zinc-600 hover:border-hairline-strong focus:border-accent/70 disabled:opacity-50";
-// Card primary action (initiate) — violet. Confidential confirm steps use emerald below.
+// Card primary action (initiate) — brand amber. Confidential confirm steps use emerald below.
 const btnCls =
   "inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-accent px-4 text-sm font-medium text-accent-fg transition-[background-color,transform] duration-150 ease-out hover:bg-accent-hover active:translate-y-px disabled:pointer-events-none disabled:opacity-40";
 // Confidential confirm / release — emerald (the "confirmed" moment).

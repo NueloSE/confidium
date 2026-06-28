@@ -34,6 +34,7 @@ export function ConnectButton() {
   }
 
   const wrongNetwork = chainId !== sepolia.id;
+  const avatarHue = address ? parseInt(address.slice(2, 8), 16) % 360 : 210;
 
   return (
     <div className="flex items-center gap-2">
@@ -55,7 +56,8 @@ export function ConnectButton() {
         className="group inline-flex h-9 items-center gap-2 rounded-lg border border-hairline bg-white/3 pl-1.5 pr-2.5 text-sm font-medium text-zinc-200 transition-colors duration-150 hover:border-hairline-strong hover:bg-white/6"
       >
         <span
-          className="h-5 w-5 rounded-full bg-[linear-gradient(135deg,#7c5cff,#38bdf8)]"
+          className="h-5 w-5 rounded-full"
+          style={{ backgroundColor: `hsl(${avatarHue} 58% 45%)` }}
           aria-hidden
         />
         <span className="font-mono text-xs">{address ? short(address) : "Connected"}</span>

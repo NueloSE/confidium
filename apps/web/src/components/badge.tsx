@@ -15,8 +15,8 @@ const STYLES: Record<Badge, { pill: string; dot: string; help: string }> = {
     help: "An official testnet mock token — mint some from the faucet to try the wrap/unwrap flow on Sepolia.",
   },
   custom: {
-    pill: "bg-accent-soft text-accent-hover ring-accent/30",
-    dot: "bg-accent",
+    pill: "bg-white/6 text-zinc-300 ring-hairline-strong",
+    dot: "bg-zinc-400",
     help: "Added via the in-app form or committed config — never shown as Official. The on-chain registry stays the source of truth.",
   },
   unverified: {
