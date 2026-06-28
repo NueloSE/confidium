@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Eye, Lock, ShieldCheck } from "lucide-react";
 import { MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID, type SupportedChainId } from "@confidium/core";
+import { CursorGlow } from "@/components/cursor-glow";
 import { PairsTable } from "@/components/pairs-table";
 import { SplineBackground } from "@/components/spline-background";
 import { buttonVariants } from "@/components/ui/button";
@@ -44,10 +45,40 @@ function NetworkSegment({ isMainnet }: { isMainnet: boolean }) {
   );
 }
 
+/** Decorative blur→reveal teaser, shown under the coin. */
+function HeroRevealCard() {
+  return (
+    <div
+      aria-hidden
+      className="w-full max-w-[19rem] rounded-2xl border border-hairline bg-surface/70 p-4 shadow-2xl shadow-black/40 backdrop-blur-md"
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-zinc-500">Your confidential balance</span>
+        <span className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent-hover">
+          <Lock className="h-3 w-3" /> encrypted
+        </span>
+      </div>
+      <div className="mt-2.5 flex items-end justify-between gap-3">
+        <div className="font-mono text-2xl font-semibold text-zinc-100">
+          <span className="encrypted-blur">847,210</span>{" "}
+          <span className="text-sm text-zinc-500">cUSDC</span>
+        </div>
+        <span className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-medium text-accent-fg">
+          <Eye className="h-3.5 w-3.5" /> Reveal
+        </span>
+      </div>
+      <div className="mt-3 flex items-center gap-2 text-xs text-zinc-500">
+        <ShieldCheck className="h-3.5 w-3.5 text-success" />
+        Only you can reveal it — via EIP-712.
+      </div>
+    </div>
+  );
+}
+
 /** Flowing brand "confidential token" coin — the right-side hero visual. */
 function HeroCoin() {
   return (
-    <div aria-hidden className="relative hidden items-center justify-center lg:flex">
+    <div aria-hidden className="relative flex items-center justify-center">
       {/* Amber glow */}
       <div className="absolute h-72 w-72 rounded-full bg-accent/20 blur-[90px]" />
       <div className="animate-float relative grid h-60 w-60 place-items-center rounded-full bg-surface/70 ring-1 ring-accent/30 shadow-[0_35px_90px_-20px_rgba(255,153,0,0.45)] backdrop-blur-sm">
@@ -86,16 +117,22 @@ export default async function Home({
 
   return (
     <main>
-      {/* Hero — 3D Spline background, amber-themed, content bottom-left + flowing coin */}
-      <section className="relative flex min-h-[86vh] items-end overflow-hidden border-b border-hairline bg-canvas">
-        {/* 3D background */}
-        <SplineBackground scene={SPLINE_SCENE} />
-        {/* Theme + legibility overlays: darken bottom-left, let the 3D show top-right, amber wash */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-canvas via-canvas/85 to-canvas/30" />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-canvas via-transparent to-transparent" />
-        <div className="pointer-events-none absolute -left-24 bottom-0 h-[460px] w-[640px] rounded-full bg-accent/12 blur-[120px]" />
+      {/* Hero — 3D Spline background, amber-themed, content + flowing coin */}
+      <section className="relative flex min-h-[80vh] items-center overflow-hidden border-b border-hairline bg-canvas">
+        {/* 3D background, hue-shifted toward the brand amber */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{ filter: "hue-rotate(-80deg) saturate(1.15)" }}
+        >
+          <SplineBackground scene={SPLINE_SCENE} />
+        </div>
+        {/* Legibility overlays: darken left, let the 3D show right */}
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-tr from-canvas via-canvas/80 to-canvas/25" />
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-canvas via-transparent to-transparent" />
+        {/* Amber glow that follows the cursor */}
+        <CursorGlow />
 
-        <div className="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-10 px-6 pb-14 pt-32 lg:grid-cols-[1.15fr_0.85fr]">
+        <div className="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-10 px-6 py-16 lg:grid-cols-[1.15fr_0.85fr]">
           <div>
             <span
               className="animate-fade-up inline-flex items-center gap-1.5 rounded-full border border-hairline bg-surface/70 px-3 py-1 text-xs font-medium text-zinc-300 opacity-0 backdrop-blur"
@@ -145,7 +182,12 @@ export default async function Home({
               <Stat value="2" label="Networks" />
             </div>
           </div>
-          <HeroCoin />
+
+          {/* Right: flowing coin + reveal teaser */}
+          <div className="hidden flex-col items-center gap-6 lg:flex">
+            <HeroCoin />
+            <HeroRevealCard />
+          </div>
         </div>
       </section>
 
