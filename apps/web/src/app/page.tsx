@@ -1,10 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, Eye, Lock, Search, ShieldCheck, Unlock } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Eye, Lock, Send, ShieldCheck, Unlock } from "lucide-react";
 import { MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID, type SupportedChainId } from "@confidium/core";
 import { CursorGlow } from "@/components/cursor-glow";
 import { PairsTable } from "@/components/pairs-table";
 import { SplineBackground } from "@/components/spline-background";
+import { UnwrapSteps } from "@/components/unwrap-steps";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { getPairsCached } from "@/lib/registry-data";
@@ -101,58 +102,181 @@ function HeroCoin() {
   );
 }
 
-const STEPS = [
-  {
-    n: "01",
-    icon: Search,
-    title: "Browse & open",
-    body: "Find a token pair in the live registry and open it — that's where every action lives.",
-  },
-  {
-    n: "02",
-    icon: Lock,
-    title: "Wrap",
-    body: "Mint test tokens from the faucet, then wrap your ERC-20 into its confidential ERC-7984 form.",
-  },
-  {
-    n: "03",
-    icon: Eye,
-    title: "Reveal & send",
-    body: "Privately reveal your balance — only you can — and send to anyone with the amount encrypted.",
-  },
-  {
-    n: "04",
-    icon: Unlock,
-    title: "Unwrap",
-    body: "Burn → decrypt → finalize to release your ERC-20. Interrupted unwraps auto-recover.",
-  },
-];
+/* ---- App-snapshot mockups (static replicas of the real action cards) ---- */
+const mockCard = "rounded-2xl border border-hairline bg-surface p-5 shadow-2xl shadow-black/40";
+const mockTitle = "mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-200";
+const mockInput =
+  "flex h-10 w-full items-center rounded-lg border border-hairline bg-surface-2 px-3 text-sm text-zinc-100";
+const mockAmber =
+  "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-accent px-4 text-sm font-medium text-accent-fg";
+const mockGreen =
+  "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-success px-4 text-sm font-medium text-black";
+const mockHelp = "mt-2 text-xs text-zinc-600";
+
+function WrapMock() {
+  return (
+    <div className={mockCard}>
+      <h4 className={mockTitle}>
+        <Lock className="h-4 w-4 text-zinc-400" /> Wrap → cUSDC
+      </h4>
+      <div className="flex gap-2">
+        <div className={mockInput}>100</div>
+        <span className={mockAmber}>Approve</span>
+      </div>
+      <p className={mockHelp}>Approve the wrapper to spend your tokens, then wrap.</p>
+    </div>
+  );
+}
+
+function RevealMock() {
+  return (
+    <div className="rounded-2xl border border-success/25 bg-surface px-5 py-4 shadow-2xl shadow-black/40">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-xs text-zinc-500">Your confidential cUSDC balance</div>
+          <div className="mt-1.5 animate-reveal font-mono text-2xl font-semibold text-success">
+            8,420.00 <span className="text-sm font-normal text-zinc-500">cUSDC</span>
+          </div>
+        </div>
+        <span className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-hairline bg-white/3 px-3 text-xs font-medium text-zinc-200">
+          <Eye className="h-3.5 w-3.5" /> Hide
+        </span>
+      </div>
+      <p className="mt-2 text-xs text-zinc-600">
+        Decrypted privately via EIP-712 — only you can read this value.
+      </p>
+    </div>
+  );
+}
+
+function SendMock() {
+  return (
+    <div className={mockCard}>
+      <h4 className={mockTitle}>
+        <Send className="h-4 w-4 text-zinc-400" /> Send cUSDC privately
+      </h4>
+      <div className="grid gap-2">
+        <div className={cn(mockInput, "text-zinc-400")}>0x9a3f…E21b</div>
+        <div className="flex gap-2">
+          <div className={mockInput}>25</div>
+          <span className={mockGreen}>Confirm send</span>
+        </div>
+      </div>
+      <p className={mockHelp}>
+        Transfers your confidential cUSDC — the amount is never revealed publicly.
+      </p>
+    </div>
+  );
+}
+
+function UnwrapMock() {
+  return (
+    <div className={mockCard}>
+      <h4 className={mockTitle}>
+        <Unlock className="h-4 w-4 text-zinc-400" /> Unwrap → USDC
+      </h4>
+      <div className="flex gap-2">
+        <div className={mockInput}>50</div>
+        <span className={mockAmber}>Prepare unwrap</span>
+      </div>
+      <UnwrapSteps phase="decrypting" />
+      <p className={mockHelp}>
+        Burns confidential tokens, decrypts the amount, then releases the ERC-20.
+      </p>
+    </div>
+  );
+}
+
+type Feature = {
+  eyebrow: string;
+  icon: typeof Lock;
+  title: string;
+  body: string;
+  mock: React.ReactNode;
+  reverse?: boolean;
+};
+
+function FeatureRow({ eyebrow, icon: Icon, title, body, mock, reverse }: Feature) {
+  return (
+    <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+      <div className={cn(reverse && "lg:order-2")}>
+        <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+          <Icon className="h-3.5 w-3.5" />
+          {eyebrow}
+        </div>
+        <h3 className="mt-4 text-3xl font-bold tracking-tight text-zinc-50 sm:text-[2.5rem] sm:leading-[1.08]">
+          {title}
+        </h3>
+        <p className="mt-4 max-w-md text-base leading-relaxed text-zinc-400">{body}</p>
+      </div>
+      <div className={cn("flex justify-center lg:justify-end", reverse && "lg:order-1 lg:justify-start")}>
+        <div className="relative w-full max-w-sm">
+          <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-accent/[0.06] blur-2xl" />
+          {mock}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function HowItWorks() {
+  const features: Feature[] = [
+    {
+      eyebrow: "Wrap",
+      icon: Lock,
+      title: "Make your balance private.",
+      body: "Wrapping turns a public ERC-20 into its confidential ERC-7984 twin. Approve the wrapper once, then wrap any amount — from that moment your balance lives encrypted on-chain. The total supply stays public; what you personally hold does not. Only you can decrypt it.",
+      mock: <WrapMock />,
+    },
+    {
+      eyebrow: "Reveal",
+      icon: Eye,
+      title: "Only you can see it.",
+      body: "Your confidential balance reads as “encrypted” to everyone — including block explorers. Tap Reveal and Confidium decrypts it locally with a one-time EIP-712 signature, just for you. The cleartext never touches the chain, and the session is cached so you only sign once.",
+      mock: <RevealMock />,
+      reverse: true,
+    },
+    {
+      eyebrow: "Send privately",
+      icon: Send,
+      title: "Send without revealing the amount.",
+      body: "Transfer a confidential token to any address in a single transaction — the amount is encrypted end-to-end. Observers see that a transfer happened, never how much. No decrypt step, no reveal: it's privacy by default.",
+      mock: <SendMock />,
+    },
+    {
+      eyebrow: "Unwrap",
+      icon: Unlock,
+      title: "Convert back, safely.",
+      body: "Unwrapping returns your ERC-20 through a guided, fail-safe flow: burn the confidential amount, publicly decrypt it, then finalize to release the tokens. If a tab closes mid-way, Confidium detects the pending unwrap and lets you finish it — funds never get stuck.",
+      mock: <UnwrapMock />,
+      reverse: true,
+    },
+  ];
+
   return (
     <section id="how" className="scroll-mt-20 border-b border-hairline">
-      <div className="mx-auto max-w-6xl px-6 py-14">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight text-zinc-100">How it works</h2>
-          <p className="mt-1 text-sm text-zinc-400">
-            From a public ERC-20 to a private ERC-7984 — and all the way back.
+      <div className="mx-auto max-w-6xl px-6 py-16 sm:py-24">
+        <div className="max-w-xl">
+          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            How it works
+          </div>
+          <h2 className="mt-4 text-3xl font-bold tracking-tight text-zinc-50 sm:text-4xl">
+            From a public token to a private one — and back.
+          </h2>
+          <p className="mt-3 text-base leading-relaxed text-zinc-400">
+            Four moves, each fully confidential. Here&apos;s what actually happens — and what it looks
+            like in the app.
           </p>
         </div>
-        <ol className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map((s) => (
-            <li key={s.n} className="rounded-2xl border border-hairline bg-surface p-5">
-              <div className="flex items-center justify-between">
-                <span className="grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent">
-                  <s.icon className="h-4 w-4" />
-                </span>
-                <span className="font-mono text-xs text-zinc-600">{s.n}</span>
-              </div>
-              <h3 className="mt-4 text-sm font-semibold text-zinc-100">{s.title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">{s.body}</p>
-            </li>
+
+        <div className="mt-16 space-y-20 sm:mt-20 sm:space-y-28">
+          {features.map((f) => (
+            <FeatureRow key={f.eyebrow} {...f} />
           ))}
-        </ol>
-        <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-zinc-400">
+        </div>
+
+        <div className="mt-16 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-hairline pt-8 text-sm text-zinc-400">
           <span className="text-zinc-500">Also:</span>
           <Link href="/decrypt" className="inline-flex items-center gap-1 transition-colors hover:text-accent-hover">
             Decrypt any ERC-7984 <ArrowUpRight className="h-3.5 w-3.5" />
