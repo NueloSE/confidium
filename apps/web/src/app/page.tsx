@@ -118,7 +118,7 @@ export default async function Home({
   return (
     <main>
       {/* Hero — 3D Spline background, amber-themed, content + flowing coin */}
-      <section className="relative flex min-h-[80vh] items-center overflow-hidden border-b border-hairline bg-canvas">
+      <section className="relative flex min-h-[40rem] items-center overflow-hidden border-b border-hairline bg-canvas">
         {/* 3D background, hue-shifted toward the brand amber */}
         <div
           className="pointer-events-none absolute inset-0"
@@ -195,9 +195,18 @@ export default async function Home({
       <section id="registry" className="mx-auto max-w-6xl scroll-mt-20 px-6 py-12">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="text-xl font-semibold tracking-tight text-zinc-100">
-              Confidential wrappers registry
-            </h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-semibold tracking-tight text-zinc-100">
+                Confidential wrappers registry
+              </h2>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-surface px-2.5 py-0.5 text-[11px] font-medium text-zinc-400">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success/70" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-success" />
+                </span>
+                Live
+              </span>
+            </div>
             <p className="mt-1 max-w-xl text-sm text-zinc-400">
               Every pair on {isMainnet ? "Ethereum mainnet" : "Sepolia"}, read live from chain.
               {isMainnet && " Mainnet is read-only — wrap, unwrap, and decrypt run on Sepolia."}

@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowUpRight, Check, Search, X } from "lucide-react";
+import { ArrowLeftRight, ArrowUpRight, Check, Search, X } from "lucide-react";
 import type { UiPair } from "@/lib/pair";
 import { BadgePill } from "./badge";
 import { TokenIcon } from "./token-icon";
 import { AddressChip } from "./address-chip";
-import { Input } from "./ui/input";
 import { InfoTip } from "./ui/tooltip";
 import { cn } from "./ui/cn";
 
@@ -51,6 +50,7 @@ function Verify({ ok, label, help }: { ok: boolean; label: string; help: string 
 
 const th = "px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-zinc-500";
 const thNum = "px-4 py-3 text-right text-[11px] font-medium uppercase tracking-wider text-zinc-500";
+const cell = "px-4 py-3.5";
 
 export function PairsTable({
   pairs,
@@ -69,16 +69,17 @@ export function PairsTable({
   }, [pairs, query]);
 
   return (
-    <div className="w-full">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="relative w-full max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-600" />
-          <Input
+    <div className="overflow-hidden rounded-2xl border border-hairline bg-surface/30">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between gap-3 border-b border-hairline px-4 py-3">
+        <div className="relative flex w-full max-w-sm items-center">
+          <Search className="pointer-events-none absolute left-0 h-4 w-4 text-zinc-600" />
+          <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by symbol, name, or address…"
             aria-label="Search pairs"
-            className="pl-9"
+            className="w-full bg-transparent pl-7 text-sm text-zinc-100 outline-none placeholder:text-zinc-600"
           />
         </div>
         <span className="shrink-0 font-mono text-xs text-zinc-500">
@@ -87,11 +88,12 @@ export function PairsTable({
         </span>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-hairline">
+      <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-hairline bg-surface-2/60">
+            <tr className="border-b border-hairline bg-surface-2/40">
               <th className={th}>Confidential</th>
+              <th className="hidden w-8 sm:table-cell" aria-hidden />
               <th className={th}>Underlying</th>
               <th className={cn(thNum, "hidden lg:table-cell")}>Dec</th>
               <th className={cn(thNum, "hidden sm:table-cell")}>Rate</th>
@@ -104,9 +106,14 @@ export function PairsTable({
             {filtered.map((p) => (
               <tr
                 key={p.wrapper}
-                className="group border-b border-hairline/60 transition-colors duration-150 last:border-0 hover:bg-white/2.5"
+                className="group border-b border-hairline/50 transition-colors duration-150 last:border-0 hover:bg-accent/5"
               >
-                <td className="px-4 py-3">
+                <td
+                  className={cn(
+                    cell,
+                    "transition-shadow duration-150 group-hover:shadow-[inset_3px_0_0_0_var(--color-accent)]",
+                  )}
+                >
                   <div className="flex items-center gap-3">
                     <TokenIcon
                       address={p.wrapper}
@@ -135,7 +142,13 @@ export function PairsTable({
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3">
+                <td className="hidden text-center sm:table-cell">
+                  <ArrowLeftRight
+                    className="mx-auto h-3.5 w-3.5 text-zinc-700 transition-colors group-hover:text-accent/70"
+                    aria-label="wraps and unwraps"
+                  />
+                </td>
+                <td className={cell}>
                   <div className="flex items-center gap-2.5">
                     <TokenIcon address={p.underlying} symbol={p.underlyingMeta.symbol} size="sm" />
                     <div className="min-w-0">
@@ -144,21 +157,21 @@ export function PairsTable({
                     </div>
                   </div>
                 </td>
-                <td className="hidden px-4 py-3 text-right font-mono text-zinc-400 lg:table-cell">
+                <td className={cn(cell, "hidden text-right font-mono text-zinc-400 lg:table-cell")}>
                   {p.wrapperMeta.decimals ?? "—"}
                 </td>
-                <td className="hidden px-4 py-3 text-right sm:table-cell">
+                <td className={cn(cell, "hidden text-right sm:table-cell")}>
                   <InfoTip label={rateLabel(p.rate).title}>
                     <span className="cursor-default font-mono text-zinc-400">{rateLabel(p.rate).text}</span>
                   </InfoTip>
                 </td>
-                <td className="hidden px-4 py-3 md:table-cell">
+                <td className={cn(cell, "hidden md:table-cell")}>
                   <AddressChip address={p.wrapper} explorerBase={explorerBase} />
                 </td>
-                <td className="hidden px-4 py-3 lg:table-cell">
+                <td className={cn(cell, "hidden lg:table-cell")}>
                   <AddressChip address={p.underlying} explorerBase={explorerBase} />
                 </td>
-                <td className="hidden px-4 py-3 md:table-cell">
+                <td className={cn(cell, "hidden md:table-cell")}>
                   <div className="flex items-center gap-1.5">
                     <Verify
                       ok={p.supports7984}
@@ -176,7 +189,7 @@ export function PairsTable({
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-14 text-center">
+                <td colSpan={8} className="px-4 py-16 text-center">
                   <p className="text-sm text-zinc-300">No pairs match “{query}”.</p>
                   <button
                     type="button"
