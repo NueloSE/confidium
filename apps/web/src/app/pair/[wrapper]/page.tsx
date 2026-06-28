@@ -95,7 +95,7 @@ export default async function PairPage({
       {/* Token header */}
       <div className="mt-5 rounded-2xl border border-hairline bg-surface p-6">
         <div className="flex items-start gap-4">
-          <TokenIcon address={pair.wrapper} symbol={pair.wrapperMeta.symbol} size="lg" />
+          <TokenIcon address={pair.wrapper} symbol={pair.wrapperMeta.symbol} size="lg" confidential />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-bold tracking-tight text-zinc-50">{symbol}</h1>

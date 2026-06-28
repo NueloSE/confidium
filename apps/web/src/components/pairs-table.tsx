@@ -108,7 +108,12 @@ export function PairsTable({
               >
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <TokenIcon address={p.wrapper} symbol={p.wrapperMeta.symbol} size="sm" />
+                    <TokenIcon
+                      address={p.wrapper}
+                      symbol={p.wrapperMeta.symbol}
+                      size="sm"
+                      confidential
+                    />
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         {linkDetails ? (

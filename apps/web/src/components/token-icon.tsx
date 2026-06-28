@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { ShieldCheck } from "lucide-react";
 import { cn } from "./ui/cn";
 
 /* ----------------------------------------------------------------------------
    Real token logos. Arbitrary ERC-7984 wrappers carry no logo on-chain, so we
    map recognizable underlying assets to their official mark (Trust Wallet CDN),
    draw ZAMA by hand, and fall back to a deterministic colored avatar otherwise.
+   Confidential (wrapper) tokens get a small shield badge so they read as private.
 ---------------------------------------------------------------------------- */
 const tw = (addr: string) =>
   `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${addr}/logo.png`;
@@ -71,6 +73,12 @@ const SIZES = {
   lg: "h-12 w-12 text-lg",
 } as const;
 
+const BADGE = {
+  sm: { box: "h-3.5 w-3.5", icon: "h-2.5 w-2.5" },
+  md: { box: "h-4 w-4", icon: "h-3 w-3" },
+  lg: { box: "h-5 w-5", icon: "h-3.5 w-3.5" },
+} as const;
+
 /** Hand-drawn ZAMA mark (yellow disc, black "Z") — no public CDN logo exists. */
 function ZamaMark() {
   return (
@@ -88,38 +96,49 @@ function ZamaMark() {
   );
 }
 
+/** Bottom-right "confidential" shield, ringed by the canvas so it cuts out cleanly. */
+function ConfidentialBadge({ size }: { size: keyof typeof SIZES }) {
+  const b = BADGE[size];
+  return (
+    <span
+      className={cn(
+        "absolute -bottom-0.5 -right-0.5 grid place-items-center rounded-full bg-accent text-accent-fg ring-2 ring-canvas",
+        b.box,
+      )}
+    >
+      <ShieldCheck className={b.icon} strokeWidth={2.75} />
+    </span>
+  );
+}
+
 export function TokenIcon({
   address,
   symbol,
   size = "sm",
   className,
+  confidential = false,
 }: {
   address: string;
   symbol?: string;
   size?: keyof typeof SIZES;
   className?: string;
+  /** Wrapper (ERC-7984) tokens show a privacy shield badge; underlying tokens don't. */
+  confidential?: boolean;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
   const logo = logoFor(symbol);
   const zama = isZama(symbol);
 
-  const base = cn(
-    "grid shrink-0 place-items-center overflow-hidden rounded-full",
-    SIZES[size],
-    className,
-  );
-
+  let inner: ReactNode;
   if (zama) {
-    return (
-      <span className={base} aria-hidden>
+    inner = (
+      <span className="grid h-full w-full place-items-center overflow-hidden rounded-full">
         <ZamaMark />
       </span>
     );
-  }
-
-  if (logo && !imgFailed) {
-    return (
-      <span className={cn(base, "bg-surface-2")} aria-hidden>
+  } else if (logo && !imgFailed) {
+    inner = (
+      <span className="grid h-full w-full place-items-center overflow-hidden rounded-full bg-surface-2">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={logo}
@@ -130,21 +149,26 @@ export function TokenIcon({
         />
       </span>
     );
+  } else {
+    const hue = hueFromAddress(address);
+    inner = (
+      <span
+        style={{
+          backgroundColor: `hsl(${hue} 52% 15%)`,
+          color: `hsl(${hue} 88% 70%)`,
+          boxShadow: `inset 0 0 0 1px hsl(${hue} 60% 50% / 0.35)`,
+        }}
+        className="grid h-full w-full place-items-center overflow-hidden rounded-full font-mono font-semibold tracking-tight"
+      >
+        {tokenInitial(symbol)}
+      </span>
+    );
   }
 
-  // Fallback: deterministic colored avatar with the token's initial.
-  const hue = hueFromAddress(address);
   return (
-    <span
-      aria-hidden
-      style={{
-        backgroundColor: `hsl(${hue} 52% 15%)`,
-        color: `hsl(${hue} 88% 70%)`,
-        boxShadow: `inset 0 0 0 1px hsl(${hue} 60% 50% / 0.35)`,
-      }}
-      className={cn(base, "font-mono font-semibold tracking-tight")}
-    >
-      {tokenInitial(symbol)}
+    <span className={cn("relative inline-grid shrink-0", SIZES[size], className)} aria-hidden>
+      {inner}
+      {confidential && <ConfidentialBadge size={size} />}
     </span>
   );
 }
