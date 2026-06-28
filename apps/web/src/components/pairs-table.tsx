@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { ArrowUpRight, Check, Search, X } from "lucide-react";
 import type { UiPair } from "@/lib/pair";
 import { BadgePill } from "./badge";
+import { TokenIcon } from "./token-icon";
 import { AddressChip } from "./address-chip";
 import { Input } from "./ui/input";
 import { InfoTip } from "./ui/tooltip";
@@ -106,25 +107,37 @@ export function PairsTable({
                 className="group border-b border-hairline/60 transition-colors duration-150 last:border-0 hover:bg-white/2.5"
               >
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    {linkDetails ? (
-                      <Link
-                        href={`/pair/${p.wrapper}`}
-                        className="inline-flex items-center gap-1 font-medium text-zinc-100 transition-colors hover:text-accent-hover"
-                      >
-                        {p.wrapperMeta.symbol ?? "—"}
-                        <ArrowUpRight className="h-3.5 w-3.5 text-zinc-600 opacity-0 transition-opacity group-hover:opacity-100" />
-                      </Link>
-                    ) : (
-                      <span className="font-medium text-zinc-100">{p.wrapperMeta.symbol ?? "—"}</span>
-                    )}
-                    <BadgePill badge={p.badge} />
+                  <div className="flex items-center gap-3">
+                    <TokenIcon address={p.wrapper} symbol={p.wrapperMeta.symbol} size="sm" />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        {linkDetails ? (
+                          <Link
+                            href={`/pair/${p.wrapper}`}
+                            className="inline-flex items-center gap-1 font-medium text-zinc-100 transition-colors hover:text-accent-hover"
+                          >
+                            {p.wrapperMeta.symbol ?? "—"}
+                            <ArrowUpRight className="h-3.5 w-3.5 text-zinc-600 opacity-0 transition-opacity group-hover:opacity-100" />
+                          </Link>
+                        ) : (
+                          <span className="font-medium text-zinc-100">
+                            {p.wrapperMeta.symbol ?? "—"}
+                          </span>
+                        )}
+                        <BadgePill badge={p.badge} />
+                      </div>
+                      <div className="truncate text-xs text-zinc-500">{p.wrapperMeta.name}</div>
+                    </div>
                   </div>
-                  <div className="mt-0.5 truncate text-xs text-zinc-500">{p.wrapperMeta.name}</div>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="text-zinc-300">{p.underlyingMeta.symbol ?? "—"}</div>
-                  <div className="mt-0.5 truncate text-xs text-zinc-500">{p.underlyingMeta.name}</div>
+                  <div className="flex items-center gap-2.5">
+                    <TokenIcon address={p.underlying} symbol={p.underlyingMeta.symbol} size="sm" />
+                    <div className="min-w-0">
+                      <div className="text-zinc-300">{p.underlyingMeta.symbol ?? "—"}</div>
+                      <div className="truncate text-xs text-zinc-500">{p.underlyingMeta.name}</div>
+                    </div>
+                  </div>
                 </td>
                 <td className="hidden px-4 py-3 text-right font-mono text-zinc-400 lg:table-cell">
                   {p.wrapperMeta.decimals ?? "—"}

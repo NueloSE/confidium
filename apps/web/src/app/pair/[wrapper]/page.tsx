@@ -5,6 +5,7 @@ import { getAddress } from "viem";
 import { enrichPairs, SEPOLIA_CHAIN_ID } from "@confidium/core";
 import { AddressChip } from "@/components/address-chip";
 import { BadgePill } from "@/components/badge";
+import { TokenIcon } from "@/components/token-icon";
 import { PairActions } from "@/components/pair-actions";
 import { PendingUnwraps } from "@/components/pending-unwraps";
 import { InfoTip } from "@/components/ui/tooltip";
@@ -94,9 +95,7 @@ export default async function PairPage({
       {/* Token header */}
       <div className="mt-5 rounded-2xl border border-hairline bg-surface p-6">
         <div className="flex items-start gap-4">
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[linear-gradient(135deg,#7c5cff,#38bdf8)] font-mono text-lg font-semibold text-white">
-            {symbol.slice(0, 1)}
-          </span>
+          <TokenIcon address={pair.wrapper} symbol={pair.wrapperMeta.symbol} size="lg" />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-bold tracking-tight text-zinc-50">{symbol}</h1>
