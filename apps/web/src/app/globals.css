@@ -138,13 +138,24 @@ body {
   }
 }
 @keyframes fade-up {
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(20px);
+    filter: blur(4px);
   }
-  to {
+  100% {
     opacity: 1;
     transform: translateY(0);
+    filter: blur(0);
+  }
+}
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.5deg);
+  }
+  50% {
+    transform: translateY(-16px) rotate(1.5deg);
   }
 }
 @keyframes reveal-pop {
@@ -160,7 +171,10 @@ body {
 
 @media (prefers-reduced-motion: no-preference) {
   .animate-fade-up {
-    animation: fade-up 0.45s var(--ease-out-soft) both;
+    animation: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .animate-float {
+    animation: float 7s ease-in-out infinite;
   }
   .animate-reveal {
     animation: reveal-pop 0.4s var(--ease-out-soft) both;
