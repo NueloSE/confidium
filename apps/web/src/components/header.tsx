@@ -7,7 +7,7 @@ import { ConnectButton } from "@/components/connect-button";
 import { cn } from "@/components/ui/cn";
 
 const NAV = [
-  { href: "/", label: "Registry" },
+  { href: "/registry", label: "Registry" },
   { href: "/#how", label: "How it works" },
   { href: "/decrypt", label: "Decrypt" },
   { href: "/add-pair", label: "Add pair" },

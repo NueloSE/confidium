@@ -1,9 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, Eye, Lock, Send, ShieldCheck, Unlock } from "lucide-react";
-import { MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID, type SupportedChainId } from "@confidium/core";
+import { ArrowRight, ArrowUpRight, Code2, Eye, Lock, Send, ShieldCheck, Unlock } from "lucide-react";
+import { SEPOLIA_CHAIN_ID } from "@confidium/core";
 import { CursorGlow } from "@/components/cursor-glow";
-import { PairsTable } from "@/components/pairs-table";
 import { SplineBackground } from "@/components/spline-background";
 import { UnwrapSteps } from "@/components/unwrap-steps";
 import { buttonVariants } from "@/components/ui/button";
@@ -20,28 +19,6 @@ function Stat({ value, label }: { value: number | string; label: string }) {
     <div className="flex flex-col">
       <span className="font-mono text-2xl font-semibold tracking-tight text-zinc-50">{value}</span>
       <span className="mt-0.5 text-xs text-zinc-500">{label}</span>
-    </div>
-  );
-}
-
-function NetworkSegment({ isMainnet }: { isMainnet: boolean }) {
-  const base = "rounded-md px-3 py-1.5 text-xs font-medium transition-colors duration-150";
-  return (
-    <div className="inline-flex rounded-lg border border-hairline bg-surface-2 p-1">
-      <Link
-        href="/"
-        aria-current={!isMainnet ? "true" : undefined}
-        className={cn(base, !isMainnet ? "bg-white/8 text-zinc-100" : "text-zinc-400 hover:text-zinc-100")}
-      >
-        Sepolia
-      </Link>
-      <Link
-        href="/?chain=mainnet"
-        aria-current={isMainnet ? "true" : undefined}
-        className={cn(base, isMainnet ? "bg-white/8 text-zinc-100" : "text-zinc-400 hover:text-zinc-100")}
-      >
-        Ethereum
-      </Link>
     </div>
   );
 }
@@ -187,6 +164,28 @@ function UnwrapMock() {
   );
 }
 
+function EmbedMock() {
+  return (
+    <div className={mockCard}>
+      <div className="mb-3 flex items-center justify-between">
+        <h4 className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
+          <Code2 className="h-4 w-4 text-zinc-400" /> Embed widget
+        </h4>
+        <span className="inline-flex items-center rounded-md border border-hairline bg-surface px-2 py-1 text-[11px] font-medium text-zinc-300">
+          Copy
+        </span>
+      </div>
+      <pre className="overflow-x-auto rounded-lg border border-hairline bg-surface-2 p-3 font-mono text-[11px] leading-relaxed text-zinc-300">
+        <code>{`<iframe
+  src="https://confidium.app/embed
+       ?token=0x4E7B…4491"
+  width="420" height="600"
+></iframe>`}</code>
+      </pre>
+    </div>
+  );
+}
+
 type Feature = {
   eyebrow: string;
   icon: typeof Lock;
@@ -251,6 +250,13 @@ function HowItWorks() {
       mock: <UnwrapMock />,
       reverse: true,
     },
+    {
+      eyebrow: "Embed",
+      icon: Code2,
+      title: "Drop privacy into any app.",
+      body: "Composable by design. Any site can embed a full wrap/unwrap box with a single <iframe> — Confidium handles all the FHE encryption invisibly, so your users connect their own wallet and transact confidentially with no relayer setup on your end. Prefer to build deeper? Import the framework-agnostic @confidium/core SDK, or pull the verified list from the tokenlists.org export.",
+      mock: <EmbedMock />,
+    },
   ];
 
   return (
@@ -285,7 +291,7 @@ function HowItWorks() {
             Add a custom pair <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
           <Link href="/developers" className="inline-flex items-center gap-1 transition-colors hover:text-accent-hover">
-            Embed the widget <ArrowUpRight className="h-3.5 w-3.5" />
+            Read the developer docs <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
         </div>
       </div>
@@ -293,17 +299,8 @@ function HowItWorks() {
   );
 }
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: Promise<{ chain?: string }>;
-}) {
-  const { chain } = await searchParams;
-  const isMainnet = chain === "mainnet" || chain === "1";
-  const chainId: SupportedChainId = isMainnet ? MAINNET_CHAIN_ID : SEPOLIA_CHAIN_ID;
-  const explorerBase = isMainnet ? "https://etherscan.io" : "https://sepolia.etherscan.io";
-
-  const { pairs } = await getPairsCached(chainId);
+export default async function Home() {
+  const { pairs } = await getPairsCached(SEPOLIA_CHAIN_ID);
   const official = pairs.filter((p) => p.badge === "official").length;
   const mock = pairs.filter((p) => p.badge === "mock").length;
 
@@ -352,7 +349,7 @@ export default async function Home({
               className="animate-fade-up mt-7 flex flex-wrap items-center gap-3 opacity-0"
               style={{ animationDelay: "0.5s" }}
             >
-              <Link href="#registry" className={cn(buttonVariants({ size: "lg" }))}>
+              <Link href="/registry" className={cn(buttonVariants({ size: "lg" }))}>
                 Explore the registry
                 <ArrowRight className="h-4 w-4" />
               </Link>
@@ -385,47 +382,6 @@ export default async function Home({
 
       {/* How it works */}
       <HowItWorks />
-
-      {/* Registry */}
-      <section id="registry" className="mx-auto max-w-6xl scroll-mt-20 px-6 py-12">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-xl font-semibold tracking-tight text-zinc-100">
-                Confidential wrappers registry
-              </h2>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-surface px-2.5 py-0.5 text-[11px] font-medium text-zinc-400">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success/70" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-success" />
-                </span>
-                Live
-              </span>
-            </div>
-            <p className="mt-1 max-w-xl text-sm text-zinc-400">
-              Every pair on {isMainnet ? "Ethereum mainnet" : "Sepolia"}, read live from chain.{" "}
-              {isMainnet
-                ? "Mainnet is read-only — wrap, unwrap, and decrypt run on Sepolia."
-                : "Open any pair to faucet, wrap, send, reveal, and unwrap."}
-            </p>
-          </div>
-          <NetworkSegment isMainnet={isMainnet} />
-        </div>
-
-        {pairs.length === 0 ? (
-          <div className="bg-dotgrid flex flex-col items-center gap-3 rounded-2xl border border-hairline bg-surface/40 px-6 py-16 text-center">
-            <span className="grid h-11 w-11 place-items-center rounded-full bg-accent-soft text-accent">
-              <Lock className="h-5 w-5" />
-            </span>
-            <p className="text-sm font-medium text-zinc-200">Reading the registry from chain…</p>
-            <p className="max-w-xs text-xs text-zinc-500">
-              This loads on-chain in one multicall. Refresh in a moment if it doesn’t appear.
-            </p>
-          </div>
-        ) : (
-          <PairsTable pairs={pairs} explorerBase={explorerBase} linkDetails={!isMainnet} />
-        )}
-      </section>
 
       {/* Footer */}
       <footer className="border-t border-hairline">
