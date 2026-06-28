@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Eye, Lock, ShieldCheck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Eye, Lock, Search, ShieldCheck, Unlock } from "lucide-react";
 import { MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID, type SupportedChainId } from "@confidium/core";
 import { CursorGlow } from "@/components/cursor-glow";
 import { PairsTable } from "@/components/pairs-table";
@@ -101,6 +101,74 @@ function HeroCoin() {
   );
 }
 
+const STEPS = [
+  {
+    n: "01",
+    icon: Search,
+    title: "Browse & open",
+    body: "Find a token pair in the live registry and open it — that's where every action lives.",
+  },
+  {
+    n: "02",
+    icon: Lock,
+    title: "Wrap",
+    body: "Mint test tokens from the faucet, then wrap your ERC-20 into its confidential ERC-7984 form.",
+  },
+  {
+    n: "03",
+    icon: Eye,
+    title: "Reveal & send",
+    body: "Privately reveal your balance — only you can — and send to anyone with the amount encrypted.",
+  },
+  {
+    n: "04",
+    icon: Unlock,
+    title: "Unwrap",
+    body: "Burn → decrypt → finalize to release your ERC-20. Interrupted unwraps auto-recover.",
+  },
+];
+
+function HowItWorks() {
+  return (
+    <section id="how" className="scroll-mt-20 border-b border-hairline">
+      <div className="mx-auto max-w-6xl px-6 py-14">
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight text-zinc-100">How it works</h2>
+          <p className="mt-1 text-sm text-zinc-400">
+            From a public ERC-20 to a private ERC-7984 — and all the way back.
+          </p>
+        </div>
+        <ol className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {STEPS.map((s) => (
+            <li key={s.n} className="rounded-2xl border border-hairline bg-surface p-5">
+              <div className="flex items-center justify-between">
+                <span className="grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent">
+                  <s.icon className="h-4 w-4" />
+                </span>
+                <span className="font-mono text-xs text-zinc-600">{s.n}</span>
+              </div>
+              <h3 className="mt-4 text-sm font-semibold text-zinc-100">{s.title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-zinc-400">{s.body}</p>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-zinc-400">
+          <span className="text-zinc-500">Also:</span>
+          <Link href="/decrypt" className="inline-flex items-center gap-1 transition-colors hover:text-accent-hover">
+            Decrypt any ERC-7984 <ArrowUpRight className="h-3.5 w-3.5" />
+          </Link>
+          <Link href="/add-pair" className="inline-flex items-center gap-1 transition-colors hover:text-accent-hover">
+            Add a custom pair <ArrowUpRight className="h-3.5 w-3.5" />
+          </Link>
+          <Link href="/developers" className="inline-flex items-center gap-1 transition-colors hover:text-accent-hover">
+            Embed the widget <ArrowUpRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default async function Home({
   searchParams,
 }: {
@@ -153,8 +221,8 @@ export default async function Home({
               className="animate-fade-up mt-5 max-w-md text-base leading-relaxed text-zinc-300 opacity-0 sm:text-lg"
               style={{ animationDelay: "0.35s" }}
             >
-              Browse every ERC-20 ↔ ERC-7984 pair in the live Zama registry, then wrap, reveal, and
-              unwrap — amounts stay encrypted end-to-end.
+              Browse every ERC-20 ↔ ERC-7984 pair in the live Zama registry — then wrap, send,
+              reveal, and unwrap any confidential token, with amounts encrypted end-to-end.
             </p>
             <div
               className="animate-fade-up mt-7 flex flex-wrap items-center gap-3 opacity-0"
@@ -191,6 +259,9 @@ export default async function Home({
         </div>
       </section>
 
+      {/* How it works */}
+      <HowItWorks />
+
       {/* Registry */}
       <section id="registry" className="mx-auto max-w-6xl scroll-mt-20 px-6 py-12">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -208,8 +279,10 @@ export default async function Home({
               </span>
             </div>
             <p className="mt-1 max-w-xl text-sm text-zinc-400">
-              Every pair on {isMainnet ? "Ethereum mainnet" : "Sepolia"}, read live from chain.
-              {isMainnet && " Mainnet is read-only — wrap, unwrap, and decrypt run on Sepolia."}
+              Every pair on {isMainnet ? "Ethereum mainnet" : "Sepolia"}, read live from chain.{" "}
+              {isMainnet
+                ? "Mainnet is read-only — wrap, unwrap, and decrypt run on Sepolia."
+                : "Open any pair to faucet, wrap, send, reveal, and unwrap."}
             </p>
           </div>
           <NetworkSegment isMainnet={isMainnet} />

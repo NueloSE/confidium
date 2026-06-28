@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ArrowLeftRight, ArrowUpRight, Check, Search, X } from "lucide-react";
 import type { UiPair } from "@/lib/pair";
@@ -62,6 +63,7 @@ export function PairsTable({
   linkDetails: boolean;
 }) {
   const [query, setQuery] = useState("");
+  const router = useRouter();
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -106,7 +108,11 @@ export function PairsTable({
             {filtered.map((p) => (
               <tr
                 key={p.wrapper}
-                className="group border-b border-hairline/50 transition-colors duration-150 last:border-0 hover:bg-accent/5"
+                onClick={linkDetails ? () => router.push(`/pair/${p.wrapper}`) : undefined}
+                className={cn(
+                  "group border-b border-hairline/50 transition-colors duration-150 last:border-0 hover:bg-accent/5",
+                  linkDetails && "cursor-pointer",
+                )}
               >
                 <td
                   className={cn(
@@ -129,7 +135,7 @@ export function PairsTable({
                             className="inline-flex items-center gap-1 font-medium text-zinc-100 transition-colors hover:text-accent-hover"
                           >
                             {p.wrapperMeta.symbol ?? "—"}
-                            <ArrowUpRight className="h-3.5 w-3.5 text-zinc-600 opacity-0 transition-opacity group-hover:opacity-100" />
+                            <ArrowUpRight className="h-3.5 w-3.5 text-zinc-600 transition-colors group-hover:text-accent-hover" />
                           </Link>
                         ) : (
                           <span className="font-medium text-zinc-100">

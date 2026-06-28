@@ -8,6 +8,7 @@ import { cn } from "@/components/ui/cn";
 
 const NAV = [
   { href: "/", label: "Registry" },
+  { href: "/#how", label: "How it works" },
   { href: "/decrypt", label: "Decrypt" },
   { href: "/add-pair", label: "Add pair" },
   { href: "/developers", label: "Developers" },

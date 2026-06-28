@@ -14,7 +14,8 @@ export function AddressChip({
   const [copied, setCopied] = useState(false);
   const short = `${address.slice(0, 6)}…${address.slice(-4)}`;
 
-  async function copy() {
+  async function copy(e: React.MouseEvent) {
+    e.stopPropagation(); // don't trigger an enclosing row click
     try {
       await navigator.clipboard.writeText(address);
       setCopied(true);
@@ -32,6 +33,7 @@ export function AddressChip({
           target="_blank"
           rel="noreferrer"
           title={address}
+          onClick={(e) => e.stopPropagation()}
           className="transition-colors duration-150 hover:text-zinc-100"
         >
           {short}
