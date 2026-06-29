@@ -77,10 +77,7 @@ export default async function RegistryPage({
           </p>
         </div>
         <div className="flex items-center gap-2.5">
-          <Link
-            href="/add-pair"
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
+          <Link href="/add-pair" className={cn(buttonVariants({ variant: "primary", size: "sm" }))}>
             <Plus className="h-4 w-4" />
             Add pair
           </Link>

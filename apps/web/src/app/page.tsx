@@ -1,25 +1,32 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, Code2, Eye, Lock, Send, ShieldCheck, Unlock } from "lucide-react";
-import { SEPOLIA_CHAIN_ID } from "@confidium/core";
+import {
+  Activity,
+  ArrowRight,
+  ArrowUpRight,
+  Code2,
+  Eye,
+  Globe,
+  Lock,
+  Send,
+  ShieldCheck,
+  Unlock,
+} from "lucide-react";
 import { CursorGlow } from "@/components/cursor-glow";
 import { SplineBackground } from "@/components/spline-background";
 import { UnwrapSteps } from "@/components/unwrap-steps";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
-import { getPairsCached } from "@/lib/registry-data";
-
-export const revalidate = 60;
 
 // The 3D background scene. Lazy-loaded, purely decorative, with a graceful fallback.
 const SPLINE_SCENE = "https://prod.spline.design/Slk6b8kz3LRlKiyk/scene.splinecode";
 
-function Stat({ value, label }: { value: number | string; label: string }) {
+function HeroPill({ icon: Icon, children }: { icon: typeof Lock; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col">
-      <span className="font-mono text-2xl font-semibold tracking-tight text-zinc-50">{value}</span>
-      <span className="mt-0.5 text-xs text-zinc-500">{label}</span>
-    </div>
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-surface/60 px-3 py-1.5 text-xs font-medium text-zinc-300 backdrop-blur">
+      <Icon className="h-3.5 w-3.5 text-accent" />
+      {children}
+    </span>
   );
 }
 
@@ -299,11 +306,7 @@ function HowItWorks() {
   );
 }
 
-export default async function Home() {
-  const { pairs } = await getPairsCached(SEPOLIA_CHAIN_ID);
-  const official = pairs.filter((p) => p.badge === "official").length;
-  const mock = pairs.filter((p) => p.badge === "mock").length;
-
+export default function Home() {
   return (
     <main>
       {/* Hero — 3D Spline background, amber-themed, content + flowing coin */}
@@ -362,13 +365,13 @@ export default async function Home() {
               </Link>
             </div>
             <div
-              className="animate-fade-up mt-10 flex flex-wrap gap-x-8 gap-y-4 opacity-0"
+              className="animate-fade-up mt-10 flex flex-wrap gap-2.5 opacity-0"
               style={{ animationDelay: "0.65s" }}
             >
-              <Stat value={pairs.length} label="Pairs in registry" />
-              <Stat value={official} label="Official" />
-              <Stat value={mock} label="Testnet mocks" />
-              <Stat value="2" label="Networks" />
+              <HeroPill icon={ShieldCheck}>End-to-end encrypted</HeroPill>
+              <HeroPill icon={Activity}>Read live on-chain</HeroPill>
+              <HeroPill icon={Globe}>Sepolia + Ethereum</HeroPill>
+              <HeroPill icon={Code2}>Open SDK + token list</HeroPill>
             </div>
           </div>
 

@@ -24,7 +24,16 @@ import { Check, Droplets, Lock, Send, ShieldAlert, Unlock, Wallet } from "lucide
 import { getFhevmInstance } from "@/lib/fhevm";
 import { DecryptBalance } from "@/components/decrypt-balance";
 import { UnwrapSteps } from "@/components/unwrap-steps";
+import { cn } from "@/components/ui/cn";
 import type { UiPair } from "@/lib/pair";
+
+type ActionTab = "faucet" | "wrap" | "unwrap" | "send";
+const ACTION_TABS: { key: ActionTab; label: string; icon: typeof Lock }[] = [
+  { key: "faucet", label: "Faucet", icon: Droplets },
+  { key: "wrap", label: "Wrap", icon: Lock },
+  { key: "unwrap", label: "Unwrap", icon: Unlock },
+  { key: "send", label: "Send", icon: Send },
+];
 
 const inputCls =
   "h-10 w-full rounded-lg border border-hairline bg-surface-2 px-3 text-sm text-zinc-100 outline-none transition-colors duration-150 placeholder:text-zinc-600 hover:border-hairline-strong focus:border-accent/70 disabled:opacity-50";
@@ -785,6 +794,7 @@ export function PairActions({ pair }: { pair: UiPair }) {
   const wrongNetwork = chainId !== SEPOLIA_CHAIN_ID;
   const [refreshKey, setRefreshKey] = useState(0);
   const [revealed, setRevealed] = useState<bigint | null>(null);
+  const [tab, setTab] = useState<ActionTab>("wrap");
   const bump = () => setRefreshKey((k) => k + 1);
 
   if (!isConnected) {
@@ -826,10 +836,42 @@ export function PairActions({ pair }: { pair: UiPair }) {
         }}
         onValue={setRevealed}
       />
-      <div className="grid gap-4 sm:grid-cols-2">
+
+      {/* Focused action switcher — one task at a time. All cards stay mounted (hidden, not
+          unmounted) so an in-flight unwrap/send keeps its state when you switch tabs. */}
+      <div className="mt-2 flex gap-1 rounded-2xl border border-hairline bg-surface-2 p-1">
+        {ACTION_TABS.map((t) => {
+          const active = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              aria-current={active ? "true" : undefined}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-150",
+                active
+                  ? "bg-accent-soft text-accent-hover"
+                  : "text-zinc-400 hover:bg-white/5 hover:text-zinc-100",
+              )}
+            >
+              <t.icon className="h-4 w-4" />
+              <span className="hidden sm:inline">{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className={cn(tab !== "faucet" && "hidden")}>
         <FaucetCard pair={pair} onDone={bump} />
+      </div>
+      <div className={cn(tab !== "wrap" && "hidden")}>
         <WrapCard pair={pair} onDone={bump} />
+      </div>
+      <div className={cn(tab !== "unwrap" && "hidden")}>
         <UnwrapCard pair={pair} onDone={bump} />
+      </div>
+      <div className={cn(tab !== "send" && "hidden")}>
         <TransferCard pair={pair} onDone={bump} revealedBalance={revealed} />
       </div>
     </div>
