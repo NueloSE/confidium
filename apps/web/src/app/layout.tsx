@@ -4,6 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { Providers } from "./providers";
 import { Header } from "@/components/header";
+import { Footer } from "@/components/footer";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 export const metadata: Metadata = {
@@ -22,7 +23,11 @@ export default function RootLayout({
         <Providers>
           <TooltipProvider delayDuration={150} skipDelayDuration={300}>
             <Header />
-            {children}
+            {/* Flex wrapper pins the footer to the bottom on short pages (Header stays sticky). */}
+            <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col">
+              <div className="flex-1">{children}</div>
+              <Footer />
+            </div>
           </TooltipProvider>
         </Providers>
       </body>

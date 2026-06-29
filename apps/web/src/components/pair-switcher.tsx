@@ -9,7 +9,15 @@ import { cn } from "./ui/cn";
 export type SwitcherPair = { wrapper: string; symbol?: string; name?: string };
 
 /** Token-selector dropdown to hop between pairs without returning to the registry. */
-export function PairSwitcher({ pairs, current }: { pairs: SwitcherPair[]; current: string }) {
+export function PairSwitcher({
+  pairs,
+  current,
+  currentSymbol,
+}: {
+  pairs: SwitcherPair[];
+  current: string;
+  currentSymbol?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -35,9 +43,11 @@ export function PairSwitcher({ pairs, current }: { pairs: SwitcherPair[]; curren
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="inline-flex items-center gap-2 rounded-lg border border-hairline bg-surface px-3 py-2 text-sm font-medium text-zinc-200 transition-colors duration-150 hover:border-hairline-strong hover:bg-elevated"
+        aria-label="Switch pair"
+        className="inline-flex items-center gap-2 rounded-lg border border-hairline bg-surface py-1.5 pl-1.5 pr-2.5 text-sm font-medium text-zinc-100 transition-colors duration-150 hover:border-hairline-strong hover:bg-elevated"
       >
-        Switch pair
+        <TokenIcon address={current} symbol={currentSymbol} size="sm" confidential />
+        <span className="max-w-32 truncate">{currentSymbol ?? "Switch pair"}</span>
         <ChevronDown
           className={cn(
             "h-4 w-4 text-zinc-500 transition-transform duration-150",

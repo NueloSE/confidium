@@ -120,7 +120,8 @@ function BalanceBar({ pair, refreshKey }: { pair: UiPair; refreshKey: number }) 
   const dec = pair.underlyingMeta.decimals ?? 18;
   const symbol = pair.underlyingMeta.symbol ?? "TOKEN";
   const { address } = useAccount();
-  const { watchAsset } = useWatchAsset();
+  // No wallet API reveals whether a token is already imported, so we confirm per session instead.
+  const { watchAsset, isSuccess: added } = useWatchAsset();
 
   const { data: balance, refetch } = useReadContract({
     address: pair.underlying as `0x${string}`,
@@ -145,23 +146,30 @@ function BalanceBar({ pair, refreshKey }: { pair: UiPair; refreshKey: number }) 
           <span className="text-sm text-zinc-500">{symbol}</span>
         </div>
       </div>
-      <button
-        type="button"
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-hairline bg-white/3 px-3 py-2 text-xs font-medium text-zinc-200 transition-colors duration-150 hover:border-hairline-strong hover:bg-white/6"
-        onClick={() =>
-          watchAsset({
-            type: "ERC20",
-            options: {
-              address: pair.underlying as `0x${string}`,
-              symbol: symbol.slice(0, 11),
-              decimals: dec,
-            },
-          })
-        }
-      >
-        <Wallet className="h-3.5 w-3.5" />
-        Add {symbol} to MetaMask
-      </button>
+      {added ? (
+        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-success/25 bg-success-soft px-3 py-2 text-xs font-medium text-success">
+          <Check className="h-3.5 w-3.5" />
+          Added to MetaMask
+        </span>
+      ) : (
+        <button
+          type="button"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-hairline bg-white/3 px-3 py-2 text-xs font-medium text-zinc-300 transition-colors duration-150 hover:border-hairline-strong hover:bg-white/6 hover:text-zinc-100"
+          onClick={() =>
+            watchAsset({
+              type: "ERC20",
+              options: {
+                address: pair.underlying as `0x${string}`,
+                symbol: symbol.slice(0, 11),
+                decimals: dec,
+              },
+            })
+          }
+        >
+          <Wallet className="h-3.5 w-3.5" />
+          Add to MetaMask
+        </button>
+      )}
     </div>
   );
 }

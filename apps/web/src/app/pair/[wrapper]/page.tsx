@@ -18,6 +18,13 @@ export const revalidate = 60;
 
 const EXPLORER = "https://sepolia.etherscan.io";
 
+/** Compact rate label — e.g. "1000000000000" → "1e12", "1" → "1:1". */
+function formatRate(rate: string | null): string {
+  if (!rate) return "—";
+  if (rate === "1") return "1:1";
+  return `1e${rate.length - 1}`;
+}
+
 function Meta({
   label,
   help,
@@ -94,13 +101,17 @@ export default async function PairPage({
       <div className="flex items-center justify-between gap-3">
         <Link
           href="/registry"
-          className="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors duration-150 hover:text-zinc-200"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-surface px-3 py-2 text-sm font-medium text-zinc-300 transition-colors duration-150 hover:border-hairline-strong hover:bg-elevated hover:text-zinc-100"
         >
           <ArrowLeft className="h-4 w-4" />
           All pairs
         </Link>
         {switcherPairs.length > 0 && (
-          <PairSwitcher pairs={switcherPairs} current={pair.wrapper} />
+          <PairSwitcher
+            pairs={switcherPairs}
+            current={pair.wrapper}
+            currentSymbol={pair.wrapperMeta.symbol}
+          />
         )}
       </div>
 
@@ -134,9 +145,13 @@ export default async function PairPage({
           </Meta>
           <Meta
             label="Rate"
-            help="Confidential units per underlying base unit (6-decimal conversion)."
+            help={
+              pair.rate && pair.rate !== "1"
+                ? `1 confidential unit = ${pair.rate} underlying base units (6-decimal conversion).`
+                : "Confidential units per underlying base unit."
+            }
           >
-            <span className="font-mono">{pair.rate ?? "—"}</span>
+            <span className="font-mono">{formatRate(pair.rate)}</span>
           </Meta>
         </div>
       </div>
