@@ -348,7 +348,16 @@ type UnwrapPhase =
   | "done"
   | "error";
 
-export function UnwrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
+export function UnwrapCard({
+  pair,
+  onDone,
+  onActiveChange,
+}: {
+  pair: UiPair;
+  onDone: () => void;
+  /** Optional: reports whether an unwrap is mid-flight (for a tab pending indicator). */
+  onActiveChange?: (active: boolean) => void;
+}) {
   const dec = pair.wrapperMeta.decimals ?? 6;
   const symbol = pair.underlyingMeta.symbol ?? "ERC-20";
   const [amount, setAmount] = useState("50");
@@ -364,6 +373,11 @@ export function UnwrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void 
   const [hash, setHash] = useState<`0x${string}` | undefined>();
   const [doneHash, setDoneHash] = useState<`0x${string}` | undefined>();
   const [error, setError] = useState<string | null>(null);
+
+  // Report mid-flight status (encrypting → finalizing) so the pair page can flag the Unwrap tab.
+  useEffect(() => {
+    onActiveChange?.(phase !== "idle" && phase !== "error" && phase !== "done");
+  }, [phase, onActiveChange]);
 
   const { data: receipt } = useWaitForTransactionReceipt({ hash });
 
@@ -788,14 +802,31 @@ function TransferCard({
 }
 
 export function PairActions({ pair }: { pair: UiPair }) {
-  const { isConnected } = useAccount();
+  const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
   const wrongNetwork = chainId !== SEPOLIA_CHAIN_ID;
   const [refreshKey, setRefreshKey] = useState(0);
   const [revealed, setRevealed] = useState<bigint | null>(null);
   const [tab, setTab] = useState<ActionTab>("wrap");
+  const [tabTouched, setTabTouched] = useState(false);
+  const [unwrapActive, setUnwrapActive] = useState(false);
   const bump = () => setRefreshKey((k) => k + 1);
+
+  const { data: underlyingBalance } = useReadContract({
+    address: pair.underlying as `0x${string}`,
+    abi: erc20Abi,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: { enabled: Boolean(address) },
+  });
+
+  // Smart default tab: no underlying balance → start on Faucet; otherwise Wrap. Respects manual switches.
+  useEffect(() => {
+    if (!tabTouched && underlyingBalance !== undefined) {
+      setTab(underlyingBalance === 0n ? "faucet" : "wrap");
+    }
+  }, [underlyingBalance, tabTouched]);
 
   if (!isConnected) {
     return (
@@ -826,53 +857,68 @@ export function PairActions({ pair }: { pair: UiPair }) {
   }
 
   return (
-    <div className="grid gap-4">
-      <BalanceBar pair={pair} refreshKey={refreshKey} />
-      <DecryptBalance
-        token={{
-          address: pair.wrapper as `0x${string}`,
-          symbol: pair.wrapperMeta.symbol,
-          decimals: pair.wrapperMeta.decimals,
-        }}
-        onValue={setRevealed}
-      />
-
-      {/* Focused action switcher — one task at a time. All cards stay mounted (hidden, not
-          unmounted) so an in-flight unwrap/send keeps its state when you switch tabs. */}
-      <div className="mt-2 flex gap-1 rounded-2xl border border-hairline bg-surface-2 p-1">
-        {ACTION_TABS.map((t) => {
-          const active = tab === t.key;
-          return (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setTab(t.key)}
-              aria-current={active ? "true" : undefined}
-              className={cn(
-                "flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-150",
-                active
-                  ? "bg-accent-soft text-accent-hover"
-                  : "text-zinc-400 hover:bg-white/5 hover:text-zinc-100",
-              )}
-            >
-              <t.icon className="h-4 w-4" />
-              <span className="hidden sm:inline">{t.label}</span>
-            </button>
-          );
-        })}
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
+      {/* Left: your balances (context), kept in view while you act */}
+      <div className="grid gap-4 lg:sticky lg:top-20">
+        <BalanceBar pair={pair} refreshKey={refreshKey} />
+        <DecryptBalance
+          token={{
+            address: pair.wrapper as `0x${string}`,
+            symbol: pair.wrapperMeta.symbol,
+            decimals: pair.wrapperMeta.decimals,
+          }}
+          onValue={setRevealed}
+        />
       </div>
 
-      <div className={cn(tab !== "faucet" && "hidden")}>
-        <FaucetCard pair={pair} onDone={bump} />
-      </div>
-      <div className={cn(tab !== "wrap" && "hidden")}>
-        <WrapCard pair={pair} onDone={bump} />
-      </div>
-      <div className={cn(tab !== "unwrap" && "hidden")}>
-        <UnwrapCard pair={pair} onDone={bump} />
-      </div>
-      <div className={cn(tab !== "send" && "hidden")}>
-        <TransferCard pair={pair} onDone={bump} revealedBalance={revealed} />
+      {/* Right: focused action switcher — one task at a time. All cards stay mounted (hidden,
+          not unmounted) so an in-flight unwrap/send keeps its state when you switch tabs. */}
+      <div className="grid gap-4">
+        <div className="flex gap-1 rounded-2xl border border-hairline bg-surface-2 p-1">
+          {ACTION_TABS.map((t) => {
+            const active = tab === t.key;
+            const pending = t.key === "unwrap" && unwrapActive;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => {
+                  setTab(t.key);
+                  setTabTouched(true);
+                }}
+                aria-current={active ? "true" : undefined}
+                className={cn(
+                  "relative flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-150",
+                  active
+                    ? "bg-accent-soft text-accent-hover"
+                    : "text-zinc-400 hover:bg-white/5 hover:text-zinc-100",
+                )}
+              >
+                <t.icon className="h-4 w-4" />
+                <span className="hidden sm:inline">{t.label}</span>
+                {pending && (
+                  <span
+                    className="absolute right-1.5 top-1.5 h-1.5 w-1.5 animate-pulse rounded-full bg-accent"
+                    title="Unwrap in progress"
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className={cn(tab !== "faucet" && "hidden")}>
+          <FaucetCard pair={pair} onDone={bump} />
+        </div>
+        <div className={cn(tab !== "wrap" && "hidden")}>
+          <WrapCard pair={pair} onDone={bump} />
+        </div>
+        <div className={cn(tab !== "unwrap" && "hidden")}>
+          <UnwrapCard pair={pair} onDone={bump} onActiveChange={setUnwrapActive} />
+        </div>
+        <div className={cn(tab !== "send" && "hidden")}>
+          <TransferCard pair={pair} onDone={bump} revealedBalance={revealed} />
+        </div>
       </div>
     </div>
   );

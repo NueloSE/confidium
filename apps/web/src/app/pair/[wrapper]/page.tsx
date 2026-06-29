@@ -7,6 +7,7 @@ import { AddressChip } from "@/components/address-chip";
 import { BadgePill } from "@/components/badge";
 import { TokenIcon } from "@/components/token-icon";
 import { PairActions } from "@/components/pair-actions";
+import { PairSwitcher } from "@/components/pair-switcher";
 import { PendingUnwraps } from "@/components/pending-unwraps";
 import { InfoTip } from "@/components/ui/tooltip";
 import { getServerClient } from "@/lib/clients";
@@ -82,15 +83,26 @@ export default async function PairPage({
 
   const symbol = pair.wrapperMeta.symbol ?? "Pair";
 
+  const switcherPairs = pairs.map((p) => ({
+    wrapper: p.wrapper,
+    symbol: p.wrapperMeta.symbol,
+    name: p.wrapperMeta.name,
+  }));
+
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10">
-      <Link
-        href="/registry"
-        className="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors duration-150 hover:text-zinc-200"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        All pairs
-      </Link>
+    <main className="mx-auto max-w-5xl px-6 py-10">
+      <div className="flex items-center justify-between gap-3">
+        <Link
+          href="/registry"
+          className="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors duration-150 hover:text-zinc-200"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          All pairs
+        </Link>
+        {switcherPairs.length > 0 && (
+          <PairSwitcher pairs={switcherPairs} current={pair.wrapper} />
+        )}
+      </div>
 
       {/* Token header */}
       <div className="mt-5 rounded-2xl border border-hairline bg-surface p-6">
