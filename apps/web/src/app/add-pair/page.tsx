@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, Loader2, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Loader2, Plus, Trash2 } from "lucide-react";
 import { getAddress, isAddress } from "viem";
 import { usePublicClient } from "wagmi";
 import { ERC7984_INTERFACE_ID, SEPOLIA_CHAIN_ID, erc7984Abi } from "@confidium/core";
@@ -73,7 +73,14 @@ export default function AddPairPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
-      <div className="animate-fade-up">
+      <Link
+        href="/registry"
+        className="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors duration-150 hover:text-zinc-200"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Registry
+      </Link>
+      <div className="animate-fade-up mt-5">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-hairline bg-surface px-3 py-1 text-xs font-medium text-zinc-300">
           <Plus className="h-3.5 w-3.5 text-accent" />
           Hybrid registry

@@ -8,9 +8,7 @@ import { cn } from "@/components/ui/cn";
 
 const NAV = [
   { href: "/registry", label: "Registry" },
-  { href: "/#how", label: "How it works" },
   { href: "/decrypt", label: "Decrypt" },
-  { href: "/add-pair", label: "Add pair" },
   { href: "/developers", label: "Developers" },
 ];
 
@@ -19,8 +17,11 @@ export function Header() {
   // The embeddable widget renders chrome-free so other sites can iframe it.
   if (pathname?.startsWith("/embed")) return null;
 
+  // Keep "Registry" lit while browsing an individual pair (it's part of that flow).
   const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : Boolean(pathname?.startsWith(href));
+    href === "/registry"
+      ? Boolean(pathname?.startsWith("/registry") || pathname?.startsWith("/pair"))
+      : Boolean(pathname?.startsWith(href));
 
   return (
     <header className="sticky top-0 z-40 border-b border-hairline bg-canvas/70 backdrop-blur-xl">

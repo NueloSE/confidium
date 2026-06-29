@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Boxes, Lock } from "lucide-react";
+import { Boxes, Lock, Plus } from "lucide-react";
 import { MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID, type SupportedChainId } from "@confidium/core";
 import { PairsTable } from "@/components/pairs-table";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { getPairsCached } from "@/lib/registry-data";
 
@@ -75,7 +76,16 @@ export default async function RegistryPage({
               : "Open any pair to faucet, wrap, send, reveal, and unwrap."}
           </p>
         </div>
-        <NetworkSegment isMainnet={isMainnet} />
+        <div className="flex items-center gap-2.5">
+          <Link
+            href="/add-pair"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            <Plus className="h-4 w-4" />
+            Add pair
+          </Link>
+          <NetworkSegment isMainnet={isMainnet} />
+        </div>
       </div>
 
       {pairs.length === 0 ? (

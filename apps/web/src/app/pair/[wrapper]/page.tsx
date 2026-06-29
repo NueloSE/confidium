@@ -85,7 +85,7 @@ export default async function PairPage({
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
       <Link
-        href="/"
+        href="/registry"
         className="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors duration-150 hover:text-zinc-200"
       >
         <ArrowLeft className="h-4 w-4" />
