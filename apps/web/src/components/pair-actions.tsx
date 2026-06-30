@@ -20,7 +20,7 @@ import {
   parseUnits,
 } from "viem";
 import { erc20Abi, erc7984Abi, SEPOLIA_CHAIN_ID } from "@confidium/core";
-import { Check, Droplets, Lock, Send, ShieldAlert, Unlock, Wallet } from "lucide-react";
+import { Check, Droplets, Info, Lock, Send, ShieldAlert, Unlock, Wallet } from "lucide-react";
 import { getFhevmInstance } from "@/lib/fhevm";
 import { DecryptBalance } from "@/components/decrypt-balance";
 import { UnwrapSteps } from "@/components/unwrap-steps";
@@ -36,23 +36,80 @@ const ACTION_TABS: { key: ActionTab; label: string; icon: typeof Lock }[] = [
 ];
 
 const inputCls =
-  "h-10 w-full rounded-lg border border-hairline bg-surface-2 px-3 text-sm text-zinc-100 outline-none transition-colors duration-150 placeholder:text-zinc-600 hover:border-hairline-strong focus:border-accent/70 disabled:opacity-50";
+  "h-12 w-full rounded-xl border border-hairline bg-surface-2 px-3.5 text-sm text-zinc-100 outline-none transition-colors duration-150 placeholder:text-zinc-600 hover:border-hairline-strong focus:border-accent/70 disabled:opacity-50";
 // Card primary action (initiate) — brand amber. Confidential confirm steps use emerald below.
 const btnCls =
-  "inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-accent px-4 text-sm font-medium text-accent-fg transition-[background-color,transform] duration-150 ease-out hover:bg-accent-hover active:translate-y-px disabled:pointer-events-none disabled:opacity-40";
+  "inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 text-sm font-semibold text-accent-fg transition-[background-color,transform] duration-150 ease-out hover:bg-accent-hover active:translate-y-px disabled:pointer-events-none disabled:opacity-40";
 // Confidential confirm / release — emerald (the "confirmed" moment).
 const confirmCls =
-  "inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-success px-4 text-sm font-medium text-black transition-[filter,transform] duration-150 ease-out hover:brightness-105 active:translate-y-px";
+  "inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-success px-4 text-sm font-semibold text-black transition-[filter,transform] duration-150 ease-out hover:brightness-105 active:translate-y-px";
 
 // Borderless — action cards sit inside the right-hand action panel, which provides the surface.
-function Card({ title, icon, children }: { title: string; icon?: ReactNode; children: ReactNode }) {
+function Card({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+}) {
   return (
     <div className="p-5">
-      <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-200">
-        {icon && <span className="text-zinc-400">{icon}</span>}
-        {title}
-      </h3>
-      {children}
+      <h3 className="text-lg font-semibold tracking-tight text-zinc-100">{title}</h3>
+      {subtitle && <p className="mt-0.5 text-sm text-zinc-500">{subtitle}</p>}
+      <div className="mt-5">{children}</div>
+    </div>
+  );
+}
+
+/** Amount input with a token-symbol suffix and an optional read-only "output preview" look. */
+function AmountInput({
+  suffix,
+  readOnly,
+  className,
+  ...props
+}: { suffix?: string; readOnly?: boolean } & React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <div className="relative">
+      <input
+        {...props}
+        inputMode="decimal"
+        readOnly={readOnly}
+        className={cn(
+          inputCls,
+          "font-mono tabular-nums",
+          readOnly && "cursor-default text-zinc-400",
+          suffix && "pr-24",
+          className,
+        )}
+      />
+      {suffix && (
+        <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-sm text-zinc-500">
+          {suffix}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** Footnote callout at the bottom of each action card. */
+function NoteBox({ tone = "info", children }: { tone?: "info" | "warn"; children: ReactNode }) {
+  return (
+    <div
+      className={cn(
+        "flex items-start gap-2 rounded-xl border px-3.5 py-3 text-xs leading-relaxed",
+        tone === "warn"
+          ? "border-warn/30 bg-warn-soft text-warn"
+          : "border-hairline bg-surface-2/40 text-zinc-500",
+      )}
+    >
+      {tone === "warn" ? (
+        <ShieldAlert className="mt-px h-3.5 w-3.5 shrink-0" />
+      ) : (
+        <Info className="mt-px h-3.5 w-3.5 shrink-0" />
+      )}
+      <span>{children}</span>
     </div>
   );
 }
@@ -204,25 +261,27 @@ function FaucetCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
 
   return (
     <Card
-      title={`Faucet — get test ${pair.underlyingMeta.symbol ?? "tokens"}`}
-      icon={<Droplets className="h-4 w-4" />}
+      title={`Get test ${pair.underlyingMeta.symbol ?? "tokens"}`}
+      subtitle="Mint mock tokens to try the flow"
     >
-      <div className="flex gap-2">
-        <input
-          className={inputCls}
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          inputMode="decimal"
-          aria-label="Amount to claim"
-        />
-        <button className={btnCls} onClick={claim} disabled={isPending}>
-          {isPending ? "Claiming…" : "Claim"}
-        </button>
-      </div>
+      <AmountInput
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+        suffix={pair.underlyingMeta.symbol ?? undefined}
+        aria-label="Amount to claim"
+      />
+      <button className={cn(btnCls, "mt-3")} onClick={claim} disabled={isPending}>
+        <Droplets className="h-4 w-4" />
+        {isPending ? "Claiming…" : "Claim tokens"}
+      </button>
       {error && <p className="mt-2 text-xs text-danger">{error.message.split("\n")[0]}</p>}
       <TxStatus hash={hash} isConfirming={isConfirming} isConfirmed={isConfirmed} />
       {doneHash && <ResultLine hash={doneHash} label="Claimed" />}
-      <p className="mt-2 text-xs text-zinc-600">Mints mock underlying tokens (max 1,000,000 / call).</p>
+      <div className="mt-4">
+        <NoteBox>
+          Mints public mock tokens so you can test wrapping — max 1,000,000 per call.
+        </NoteBox>
+      </div>
     </Card>
   );
 }
@@ -295,35 +354,42 @@ export function WrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void })
 
   return (
     <Card
-      title={`Wrap → ${pair.wrapperMeta.symbol ?? "confidential"}`}
-      icon={<Lock className="h-4 w-4" />}
+      title={`${pair.underlyingMeta.symbol ?? "Token"} → ${pair.wrapperMeta.symbol ?? "confidential"}`}
+      subtitle="Encrypt tokens on-chain"
     >
-      <div className="flex gap-2">
-        <input
-          className={inputCls}
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          inputMode="decimal"
-          aria-label="Amount to wrap"
-        />
-        {needsApproval ? (
-          <button
-            className={btnCls}
-            onClick={approve}
-            disabled={isPending || amountWei === 0n || insufficient}
-          >
-            {isPending ? "…" : "Approve"}
-          </button>
-        ) : (
-          <button
-            className={btnCls}
-            onClick={wrap}
-            disabled={isPending || amountWei === 0n || insufficient}
-          >
-            {isPending ? "…" : "Wrap"}
-          </button>
-        )}
+      <AmountInput
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+        suffix={pair.underlyingMeta.symbol ?? undefined}
+        aria-label="Amount to wrap"
+      />
+      <div className="my-3 flex justify-center">
+        <span className="grid h-8 w-8 place-items-center rounded-full border border-hairline bg-surface-2 text-accent">
+          <Lock className="h-3.5 w-3.5" />
+        </span>
       </div>
+      <div className="flex items-center justify-between rounded-xl border border-hairline bg-surface-2/50 px-3.5 py-3.5 text-sm">
+        <span className="font-mono tabular-nums text-zinc-400">{amount || "0"}</span>
+        <span className="text-zinc-500">{pair.wrapperMeta.symbol ?? "confidential"} (encrypted)</span>
+      </div>
+      {needsApproval ? (
+        <button
+          className={cn(btnCls, "mt-3")}
+          onClick={approve}
+          disabled={isPending || amountWei === 0n || insufficient}
+        >
+          {isPending ? "…" : "Approve"}
+        </button>
+      ) : (
+        <button
+          className={cn(btnCls, "mt-3")}
+          onClick={wrap}
+          disabled={isPending || amountWei === 0n || insufficient}
+        >
+          <Lock className="h-4 w-4" />
+          {isPending ? "…" : "Wrap tokens"}
+        </button>
+      )}
       {insufficient && (
         <p className="mt-2 text-xs text-danger">
           Insufficient {pair.underlyingMeta.symbol ?? "token"} balance — claim from the faucet first.
@@ -332,11 +398,13 @@ export function WrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void })
       {error && <p className="mt-2 text-xs text-danger">{error.message.split("\n")[0]}</p>}
       <TxStatus hash={hash} isConfirming={isConfirming} isConfirmed={isConfirmed} />
       {doneHash && <ResultLine hash={doneHash} label="Wrapped" />}
-      <p className="mt-2 text-xs text-zinc-600">
-        {needsApproval
-          ? "Approve the wrapper to spend your tokens, then wrap."
-          : "Wrap into the confidential token — your balance becomes encrypted."}
-      </p>
+      <div className="mt-4">
+        <NoteBox>
+          {needsApproval
+            ? "First approve the wrapper to spend your tokens, then wrap."
+            : "Amounts are encrypted via ERC-7984 — hidden from all on-chain observers."}
+        </NoteBox>
+      </div>
     </Card>
   );
 }
@@ -536,7 +604,7 @@ export function UnwrapCard({
           ? "Decrypting…"
           : phase === "finalizing"
             ? "Finalizing…"
-            : "Prepare unwrap";
+            : "Unwrap tokens";
 
   function ActionButton() {
     if (phase === "ready") {
@@ -558,7 +626,7 @@ export function UnwrapCard({
     if (phase === "decryptFailed") {
       return (
         <button
-          className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-warn px-4 text-sm font-medium text-black transition-[filter,transform] duration-150 ease-out hover:brightness-105 active:translate-y-px"
+          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-warn px-4 text-sm font-semibold text-black transition-[filter,transform] duration-150 ease-out hover:brightness-105 active:translate-y-px"
           onClick={() => requestId && runDecrypt(requestId)}
         >
           Retry release
@@ -576,22 +644,28 @@ export function UnwrapCard({
           phase === "finalizing"
         }
       >
+        <Unlock className="h-4 w-4" />
         {idleLabel}
       </button>
     );
   }
 
   return (
-    <Card title={`Unwrap → ${symbol}`} icon={<Unlock className="h-4 w-4" />}>
-      <div className="flex gap-2">
-        <input
-          className={inputCls}
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          inputMode="decimal"
-          disabled={inputDisabled}
-          aria-label="Amount to unwrap"
-        />
+    <Card
+      title={`${pair.wrapperMeta.symbol ?? "Confidential"} → ${symbol}`}
+      subtitle="Convert back to public tokens"
+    >
+      <AmountInput
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+        disabled={inputDisabled}
+        suffix={pair.wrapperMeta.symbol ?? undefined}
+        aria-label="Amount to unwrap"
+      />
+      <div className="mt-3">
+        <NoteBox tone="warn">Unwrapping makes your amount visible on-chain.</NoteBox>
+      </div>
+      <div className="mt-3">
         <ActionButton />
       </div>
 
@@ -623,9 +697,11 @@ export function UnwrapCard({
       )}
       {error && <p className="mt-2 text-xs text-danger">{error}</p>}
       {doneHash && <ResultLine hash={doneHash} label={`Unwrapped — your ${symbol} is back`} />}
-      <p className="mt-3 text-xs text-zinc-600">
-        Burns confidential tokens, decrypts the amount, then releases the ERC-20 (2 signatures).
-      </p>
+      <div className="mt-4">
+        <NoteBox>
+          Burns confidential tokens, decrypts the amount, then releases the ERC-20 (2 signatures).
+        </NoteBox>
+      </div>
     </Card>
   );
 }
@@ -733,45 +809,43 @@ function TransferCard({
   const inputsDisabled = busy || phase === "ready";
 
   return (
-    <Card title={`Send ${symbol} privately`} icon={<Send className="h-4 w-4" />}>
-      <div className="grid gap-2">
-        <input
-          className={inputCls}
-          value={to}
-          onChange={(e) => setTo(e.target.value)}
-          placeholder="Recipient 0x…"
+    <Card title="Send privately" subtitle="Amount hidden from all observers">
+      <input
+        className={cn(inputCls, "font-mono")}
+        value={to}
+        onChange={(e) => setTo(e.target.value)}
+        placeholder="0x recipient address"
+        disabled={inputsDisabled}
+        aria-label="Recipient address"
+      />
+      <div className="mt-3">
+        <AmountInput
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
           disabled={inputsDisabled}
-          aria-label="Recipient address"
+          suffix={symbol}
+          aria-label="Amount to send"
         />
-        <div className="flex gap-2">
-          <input
-            className={inputCls}
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            inputMode="decimal"
-            disabled={inputsDisabled}
-            aria-label="Amount to send"
-          />
-          {phase === "ready" ? (
-            <button className={confirmCls} onClick={confirmSend}>
-              <Check className="h-4 w-4" />
-              Confirm send
-            </button>
-          ) : (
-            <button
-              className={btnCls}
-              onClick={prepare}
-              disabled={busy || !recipientValid || exceedsBalance || amountWei === 0n}
-            >
-              {phase === "encrypting"
-                ? "Encrypting…"
-                : phase === "sending"
-                  ? "Sending…"
-                  : "Prepare send"}
-            </button>
-          )}
-        </div>
       </div>
+      {phase === "ready" ? (
+        <button className={cn(confirmCls, "mt-3")} onClick={confirmSend}>
+          <Check className="h-4 w-4" />
+          Confirm send
+        </button>
+      ) : (
+        <button
+          className={cn(btnCls, "mt-3")}
+          onClick={prepare}
+          disabled={busy || !recipientValid || exceedsBalance || amountWei === 0n}
+        >
+          <Send className="h-4 w-4" />
+          {phase === "encrypting"
+            ? "Encrypting…"
+            : phase === "sending"
+              ? "Sending…"
+              : "Send privately"}
+        </button>
+      )}
       {exceedsBalance && (
         <p className="mt-2 text-xs text-danger">
           Amount exceeds your confidential balance ({formatUnits(revealedBalance ?? 0n, dec)} {symbol})
@@ -803,9 +877,9 @@ function TransferCard({
       )}
       {error && <p className="mt-2 text-xs text-danger">{error}</p>}
       {sentHash && <ResultLine hash={sentHash} label="Sent — stays encrypted on-chain" />}
-      <p className="mt-2 text-xs text-zinc-600">
-        Transfers your confidential {symbol} — the amount is never revealed publicly.
-      </p>
+      <div className="mt-4">
+        <NoteBox>Amounts are encrypted via ERC-7984 — hidden from all on-chain observers.</NoteBox>
+      </div>
     </Card>
   );
 }
@@ -872,7 +946,7 @@ export function PairActions({ pair, header }: { pair: UiPair; header?: ReactNode
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-start">
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-stretch">
       {/* Left: identity + balances */}
       <div className="flex flex-col gap-5">
         {header}
