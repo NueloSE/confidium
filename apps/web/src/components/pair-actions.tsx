@@ -44,9 +44,10 @@ const btnCls =
 const confirmCls =
   "inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-success px-4 text-sm font-medium text-black transition-[filter,transform] duration-150 ease-out hover:brightness-105 active:translate-y-px";
 
+// Borderless — action cards sit inside the right-hand action panel, which provides the surface.
 function Card({ title, icon, children }: { title: string; icon?: ReactNode; children: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-hairline bg-surface p-5">
+    <div className="p-5">
       <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-200">
         {icon && <span className="text-zinc-400">{icon}</span>}
         {title}
@@ -138,7 +139,7 @@ function BalanceBar({ pair, refreshKey }: { pair: UiPair; refreshKey: number }) 
   const formatted = balance != null ? formatUnits(balance, dec) : "—";
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-hairline bg-surface px-5 py-4">
+    <div className="flex items-center justify-between gap-3">
       <div>
         <div className="text-xs text-zinc-500">Your {symbol} balance</div>
         <div className="text-lg font-semibold text-zinc-100">
@@ -809,7 +810,7 @@ function TransferCard({
   );
 }
 
-export function PairActions({ pair }: { pair: UiPair }) {
+export function PairActions({ pair, header }: { pair: UiPair; header?: ReactNode }) {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
@@ -838,51 +839,69 @@ export function PairActions({ pair }: { pair: UiPair }) {
 
   if (!isConnected) {
     return (
-      <div className="flex items-center gap-3 rounded-2xl border border-hairline bg-surface p-5 text-sm text-zinc-400">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent">
-          <Wallet className="h-4 w-4" />
-        </span>
-        Connect your wallet to use the faucet, wrap, unwrap, and send.
+      <div className="grid gap-5">
+        {header}
+        <div className="flex items-center gap-3 rounded-2xl border border-hairline bg-surface p-5 text-sm text-zinc-400">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent">
+            <Wallet className="h-4 w-4" />
+          </span>
+          Connect your wallet to use the faucet, wrap, unwrap, and send.
+        </div>
       </div>
     );
   }
 
   if (wrongNetwork) {
     return (
-      <div className="flex items-center gap-3 rounded-2xl border border-warn/30 bg-warn-soft p-5 text-sm text-warn">
-        <ShieldAlert className="h-5 w-5 shrink-0" />
-        <span>
-          Wrong network — confidential actions run on Sepolia.{" "}
-          <button
-            className="font-medium underline underline-offset-2 transition-colors hover:text-warn/80"
-            onClick={() => switchChain({ chainId: SEPOLIA_CHAIN_ID })}
-          >
-            Switch to Sepolia
-          </button>
-        </span>
+      <div className="grid gap-5">
+        {header}
+        <div className="flex items-center gap-3 rounded-2xl border border-warn/30 bg-warn-soft p-5 text-sm text-warn">
+          <ShieldAlert className="h-5 w-5 shrink-0" />
+          <span>
+            Wrong network — confidential actions run on Sepolia.{" "}
+            <button
+              className="font-medium underline underline-offset-2 transition-colors hover:text-warn/80"
+              onClick={() => switchChain({ chainId: SEPOLIA_CHAIN_ID })}
+            >
+              Switch to Sepolia
+            </button>
+          </span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start">
-      {/* Left: your balances (context), kept in view while you act */}
-      <div className="grid gap-4 lg:sticky lg:top-20">
-        <BalanceBar pair={pair} refreshKey={refreshKey} />
-        <DecryptBalance
-          token={{
-            address: pair.wrapper as `0x${string}`,
-            symbol: pair.wrapperMeta.symbol,
-            decimals: pair.wrapperMeta.decimals,
-          }}
-          onValue={setRevealed}
-        />
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-start">
+      {/* Left: identity + balances */}
+      <div className="flex flex-col gap-5">
+        {header}
+        <div className="overflow-hidden rounded-2xl border border-hairline bg-surface">
+          <div className="px-5 pb-2.5 pt-4 text-xs font-semibold uppercase tracking-[0.15em] text-zinc-500">
+            Balances
+          </div>
+          <div className="px-5 pb-4">
+            <BalanceBar pair={pair} refreshKey={refreshKey} />
+          </div>
+          <div className="h-px bg-hairline" />
+          <div className="px-5 py-4">
+            <DecryptBalance
+              token={{
+                address: pair.wrapper as `0x${string}`,
+                symbol: pair.wrapperMeta.symbol,
+                decimals: pair.wrapperMeta.decimals,
+              }}
+              onValue={setRevealed}
+              embedded
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Right: focused action switcher — one task at a time. All cards stay mounted (hidden,
-          not unmounted) so an in-flight unwrap/send keeps its state when you switch tabs. */}
-      <div className="grid gap-4">
-        <div className="flex gap-1 rounded-2xl border border-hairline bg-surface-2 p-1">
+      {/* Right: action panel — one card, underline tabs. All cards stay mounted (hidden, not
+          unmounted) so an in-flight unwrap/send keeps its state when you switch tabs. */}
+      <div className="overflow-hidden rounded-2xl border border-hairline bg-surface">
+        <div className="flex border-b border-hairline">
           {ACTION_TABS.map((t) => {
             const active = tab === t.key;
             const pending = t.key === "unwrap" && unwrapActive;
@@ -896,17 +915,16 @@ export function PairActions({ pair }: { pair: UiPair }) {
                 }}
                 aria-current={active ? "true" : undefined}
                 className={cn(
-                  "relative flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-150",
-                  active
-                    ? "bg-accent-soft text-accent-hover"
-                    : "text-zinc-400 hover:bg-white/5 hover:text-zinc-100",
+                  "relative flex flex-1 items-center justify-center gap-2 px-3 py-3.5 text-sm font-medium transition-colors duration-150",
+                  active ? "text-accent" : "text-zinc-400 hover:text-zinc-100",
                 )}
               >
                 <t.icon className="h-4 w-4" />
                 <span className="hidden sm:inline">{t.label}</span>
+                {active && <span className="absolute inset-x-0 -bottom-px h-0.5 bg-accent" />}
                 {pending && (
                   <span
-                    className="absolute right-1.5 top-1.5 h-1.5 w-1.5 animate-pulse rounded-full bg-accent"
+                    className="absolute right-2 top-2 h-1.5 w-1.5 animate-pulse rounded-full bg-accent"
                     title="Unwrap in progress"
                   />
                 )}

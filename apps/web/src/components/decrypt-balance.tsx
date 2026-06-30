@@ -33,10 +33,13 @@ export interface DecryptToken {
 export function DecryptBalance({
   token,
   onValue,
+  embedded = false,
 }: {
   token: DecryptToken;
   /** Reports the revealed balance (base units) to a parent, or null when hidden/stale. */
   onValue?: (clear: bigint | null) => void;
+  /** When true, drops the outer card so it can sit inside a grouped "Balances" panel. */
+  embedded?: boolean;
 }) {
   const dec = token.decimals ?? 6;
   const symbol = token.symbol ?? "cToken";
@@ -134,8 +137,9 @@ export function DecryptBalance({
   return (
     <div
       className={cn(
-        "rounded-2xl border bg-surface px-5 py-4 transition-colors duration-300",
-        revealed ? "border-success/25" : "border-hairline",
+        "transition-colors duration-300",
+        !embedded &&
+          cn("rounded-2xl border bg-surface px-5 py-4", revealed ? "border-success/25" : "border-hairline"),
       )}
     >
       <div className="flex items-center justify-between gap-3">

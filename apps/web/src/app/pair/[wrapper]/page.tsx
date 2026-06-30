@@ -96,6 +96,49 @@ export default async function PairPage({
     name: p.wrapperMeta.name,
   }));
 
+  // Token identity card — rendered into the left column of the action layout.
+  const tokenHeader = (
+    <div className="rounded-2xl border border-hairline bg-surface p-6">
+      <div className="flex items-start gap-4">
+        <TokenIcon address={pair.wrapper} symbol={pair.wrapperMeta.symbol} size="lg" confidential />
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-50">{symbol}</h1>
+            <BadgePill badge={pair.badge} />
+          </div>
+          <p className="mt-1 truncate text-sm text-zinc-400">
+            {pair.wrapperMeta.name ?? "Confidential ERC-7984 token"}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-5 border-t border-hairline pt-5 sm:grid-cols-2">
+        <Meta
+          label="Confidential (ERC-7984)"
+          help="The confidential wrapper. Balances and transfers are encrypted on-chain."
+        >
+          <AddressChip address={pair.wrapper} explorerBase={EXPLORER} />
+        </Meta>
+        <Meta label="Underlying (ERC-20)" help="The standard token this wrapper represents.">
+          <AddressChip address={pair.underlying} explorerBase={EXPLORER} />
+        </Meta>
+        <Meta label="Decimals">
+          <span className="font-mono">{pair.wrapperMeta.decimals ?? "—"}</span>
+        </Meta>
+        <Meta
+          label="Rate"
+          help={
+            pair.rate && pair.rate !== "1"
+              ? `1 confidential unit = ${pair.rate} underlying base units (6-decimal conversion).`
+              : "Confidential units per underlying base unit."
+          }
+        >
+          <span className="font-mono">{formatRate(pair.rate)}</span>
+        </Meta>
+      </div>
+    </div>
+  );
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
       <div className="flex items-center justify-between gap-3">
@@ -115,49 +158,8 @@ export default async function PairPage({
         )}
       </div>
 
-      {/* Token header */}
-      <div className="mt-5 rounded-2xl border border-hairline bg-surface p-6">
-        <div className="flex items-start gap-4">
-          <TokenIcon address={pair.wrapper} symbol={pair.wrapperMeta.symbol} size="lg" confidential />
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight text-zinc-50">{symbol}</h1>
-              <BadgePill badge={pair.badge} />
-            </div>
-            <p className="mt-1 truncate text-sm text-zinc-400">
-              {pair.wrapperMeta.name ?? "Confidential ERC-7984 token"}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-6 grid gap-5 border-t border-hairline pt-5 sm:grid-cols-2">
-          <Meta
-            label="Confidential (ERC-7984)"
-            help="The confidential wrapper. Balances and transfers are encrypted on-chain."
-          >
-            <AddressChip address={pair.wrapper} explorerBase={EXPLORER} />
-          </Meta>
-          <Meta label="Underlying (ERC-20)" help="The standard token this wrapper represents.">
-            <AddressChip address={pair.underlying} explorerBase={EXPLORER} />
-          </Meta>
-          <Meta label="Decimals">
-            <span className="font-mono">{pair.wrapperMeta.decimals ?? "—"}</span>
-          </Meta>
-          <Meta
-            label="Rate"
-            help={
-              pair.rate && pair.rate !== "1"
-                ? `1 confidential unit = ${pair.rate} underlying base units (6-decimal conversion).`
-                : "Confidential units per underlying base unit."
-            }
-          >
-            <span className="font-mono">{formatRate(pair.rate)}</span>
-          </Meta>
-        </div>
-      </div>
-
       <div className="mt-6">
-        <PairActions pair={pair} />
+        <PairActions pair={pair} header={tokenHeader} />
         <PendingUnwraps
           wrapper={pair.wrapper as `0x${string}`}
           symbol={pair.underlyingMeta.symbol ?? "token"}
