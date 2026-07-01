@@ -172,6 +172,14 @@ The repo is a pnpm workspace; deploy the `apps/web` app:
 
 > The relayer SDK needs cross‑origin isolation, which the configured headers provide — no extra Vercel config required.
 
+## Roadmap
+
+Confidium is complete for the bounty scope (Sepolia confidential ops + both‑network browse). The natural next steps toward full production:
+
+- **Ethereum mainnet writes.** The app already reads the mainnet registry, and the relayer SDK ships a `MainnetConfig` (chainId `1`, `relayer.mainnet.zama.org`) — so wrap/unwrap/send/decrypt on Ethereum L1 is a single config switch away. It's intentionally **read‑only today**: mainnet means real funds, real gas, and no test faucet, so it warrants a dedicated "real‑funds" confirmation flow and on‑chain validation before shipping. The architecture is already multi‑network and ready for it.
+- **Operator approvals** — surface ERC‑7984 `setOperator` so you can authorize another address to move your confidential tokens.
+- **Published widget package** — ship the embeddable widget as an npm web component alongside the `<iframe>` embed.
+
 ## Tech stack
 
 Next.js 15 · React 19 · TypeScript (strict) · Tailwind v4 · wagmi v3 · viem v2 · TanStack Query · `@zama-fhe/relayer-sdk` · Turborepo · pnpm.
