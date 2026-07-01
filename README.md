@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./logo.png" alt="Confidium" width="120" />
+<img src="./logo-rembg.png" alt="Confidium" width="120" />
 
 # Confidium
 
