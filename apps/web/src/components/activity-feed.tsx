@@ -121,7 +121,7 @@ export function ActivityFeed() {
             return (
               <li key={`${item.txHash}-${i}`} className="flex items-center gap-3 px-5 py-3.5">
                 <div className="relative">
-                  <TokenIcon address={item.wrapper} symbol={item.symbol} size="md" confidential />
+                  <TokenIcon address={item.wrapper} symbol={item.symbol} size="md" />
                   <span
                     className={cn(
                       "absolute -bottom-1 -left-1 grid h-4 w-4 place-items-center rounded-full ring-2 ring-surface",
