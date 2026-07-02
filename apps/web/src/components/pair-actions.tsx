@@ -86,12 +86,16 @@ function AmountInput({
 }: { suffix?: string; readOnly?: boolean } & React.InputHTMLAttributes<HTMLInputElement>) {
   const showStepper = !readOnly && !disabled;
 
+  const emit = (v: string) =>
+    onChange?.({ target: { value: v } } as unknown as React.ChangeEvent<HTMLInputElement>);
+
+  // Keep only digits and a single decimal point — no negatives, letters, or extra dots.
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    emit(e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"));
+
   const step = (delta: number) => {
     const current = parseFloat(String(value ?? "")) || 0;
-    const next = Math.max(0, Math.round((current + delta) * 1e6) / 1e6);
-    onChange?.({
-      target: { value: String(next) },
-    } as unknown as React.ChangeEvent<HTMLInputElement>);
+    emit(String(Math.max(0, Math.round((current + delta) * 1e6) / 1e6)));
   };
 
   return (
@@ -99,7 +103,7 @@ function AmountInput({
       <input
         {...props}
         value={value}
-        onChange={onChange}
+        onChange={handleChange}
         disabled={disabled}
         inputMode="decimal"
         readOnly={readOnly}
@@ -450,6 +454,11 @@ export function WrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void })
       )}
       {error && <p className="mt-2 text-xs text-danger">{error.message.split("\n")[0]}</p>}
       <TxStatus hash={hash} isConfirming={isConfirming} isConfirmed={isConfirmed} />
+      {!needsApproval && lastAction === "approve" && !doneHash && (
+        <p className="mt-2 text-xs text-success">
+          Approved ✓ — now click <span className="font-medium">Wrap tokens</span> to finish.
+        </p>
+      )}
       {doneHash && <ResultLine hash={doneHash} label="Wrapped" />}
       <div className="mt-4">
         <NoteBox>
