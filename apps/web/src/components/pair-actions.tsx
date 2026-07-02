@@ -234,7 +234,7 @@ function BalanceBar({ pair, refreshKey }: { pair: UiPair; refreshKey: number }) 
 
 function FaucetCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
   const dec = pair.underlyingMeta.decimals ?? 18;
-  const [amount, setAmount] = useState("1000");
+  const [amount, setAmount] = useState("");
   const { address } = useAccount();
   const { writeContract, data: hash, isPending, error, reset } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
@@ -268,9 +268,14 @@ function FaucetCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
         suffix={pair.underlyingMeta.symbol ?? undefined}
+        placeholder="1000"
         aria-label="Amount to claim"
       />
-      <button className={cn(btnCls, "mt-3")} onClick={claim} disabled={isPending}>
+      <button
+        className={cn(btnCls, "mt-3")}
+        onClick={claim}
+        disabled={isPending || safeParse(amount, dec) === 0n}
+      >
         <Droplets className="h-4 w-4" />
         {isPending ? "Claiming…" : "Claim tokens"}
       </button>
@@ -288,7 +293,7 @@ function FaucetCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
 
 export function WrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
   const dec = pair.underlyingMeta.decimals ?? 18;
-  const [amount, setAmount] = useState("100");
+  const [amount, setAmount] = useState("");
   const { address } = useAccount();
   const amountWei = safeParse(amount, dec);
 
@@ -323,7 +328,7 @@ export function WrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void })
     // Reset only after the wrap itself (not after the approval step).
     if (lastAction === "wrap" && hash) {
       setDoneHash(hash);
-      setAmount("100");
+      setAmount("");
       setLastAction(null);
       reset();
     }
@@ -361,6 +366,7 @@ export function WrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void })
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
         suffix={pair.underlyingMeta.symbol ?? undefined}
+        placeholder="100"
         aria-label="Amount to wrap"
       />
       <div className="my-3 flex justify-center">
@@ -437,7 +443,7 @@ export function UnwrapCard({
 }) {
   const dec = pair.wrapperMeta.decimals ?? 6;
   const symbol = pair.underlyingMeta.symbol ?? "ERC-20";
-  const [amount, setAmount] = useState("50");
+  const [amount, setAmount] = useState("");
   const { address, connector } = useAccount();
   const [phase, setPhase] = useState<UnwrapPhase>("idle");
   const [prepared, setPrepared] = useState<{ handle: `0x${string}`; proof: `0x${string}` } | null>(
@@ -524,7 +530,7 @@ export function UnwrapCard({
         setHash(undefined);
         setRequestId(null);
         setFinalizeData(null);
-        setAmount("50");
+        setAmount("");
         setPhase("idle");
         onDone();
       }
@@ -660,6 +666,7 @@ export function UnwrapCard({
         onChange={(e) => setAmount(e.target.value)}
         disabled={inputDisabled}
         suffix={pair.wrapperMeta.symbol ?? undefined}
+        placeholder="50"
         aria-label="Amount to unwrap"
       />
       <div className="mt-3">
@@ -721,7 +728,7 @@ function TransferCard({
   const symbol = pair.wrapperMeta.symbol ?? "confidential";
   const { address, connector } = useAccount();
   const [to, setTo] = useState("");
-  const [amount, setAmount] = useState("10");
+  const [amount, setAmount] = useState("");
   const [phase, setPhase] = useState<TransferPhase>("idle");
   const [prepared, setPrepared] = useState<{ handle: `0x${string}`; proof: `0x${string}` } | null>(
     null,
@@ -824,6 +831,7 @@ function TransferCard({
           onChange={(e) => setAmount(e.target.value)}
           disabled={inputsDisabled}
           suffix={symbol}
+          placeholder="10"
           aria-label="Amount to send"
         />
       </div>
