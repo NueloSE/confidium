@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import { ArrowUpRight, BookOpen, Boxes, Code2, GitBranch, Globe, Info, Package } from "lucide-react";
-import { REGISTRY_ADDRESS, SEPOLIA_CHAIN_ID } from "@confidium/core";
-import { AddressChip } from "@/components/address-chip";
+import { ArrowUpRight, BookOpen, Code2, GitBranch, Globe, Info, Package } from "lucide-react";
 import { EmbedSnippet } from "@/components/embed-snippet";
 import { SdkExamples } from "@/components/sdk-examples";
 
@@ -10,17 +8,8 @@ export const metadata: Metadata = {
   description: "Build on the Confidium SDK, or embed confidential wrapping into any app.",
 };
 
-const SEPOLIA_EXPLORER = "https://sepolia.etherscan.io";
 const REPO = "https://github.com/NueloSE/confidium";
 const SAMPLE_TOKEN = "0x4E7B06D78965594eB5EF5414c357ca21E1554491"; // cUSDTMock
-
-const CONTRACTS = [
-  { label: "Wrappers Registry", address: REGISTRY_ADDRESS[SEPOLIA_CHAIN_ID] },
-  { label: "cUSDCMock", address: "0x7c5BF43B851c1dff1a4feE8dB225b87f2C223639" },
-  { label: "cUSDTMock", address: "0x4E7B06D78965594eB5EF5414c357ca21E1554491" },
-  { label: "cWETHMock", address: "0x46208622DA27d91db4f0393733C8BA082ed83158" },
-  { label: "ctGBP", address: "0x167DC962808B32CFFFc7e14B5018c0bE06A3A208" },
-] as const;
 
 const RESOURCES = [
   { label: "Documentation", note: "README & guides", href: `${REPO}#readme`, Icon: BookOpen },
@@ -100,15 +89,17 @@ export default function DevelopersPage() {
             </dl>
           </div>
 
-          <div className="flex items-start gap-2.5 rounded-2xl border border-hairline bg-surface p-4 text-xs leading-relaxed text-zinc-500">
-            <Info className="mt-0.5 h-4 w-4 shrink-0 text-zinc-600" />
-            <span>
-              Confidential ops run on <span className="text-zinc-300">Sepolia</span>. Ethereum is
-              read-only today — mainnet writes are on the roadmap (one config away).
-            </span>
-          </div>
         </div>
       </section>
+
+      {/* Networks note — full width, balances the SDK row above */}
+      <div className="mt-6 flex items-start gap-2.5 rounded-2xl border border-hairline bg-surface p-4 text-xs leading-relaxed text-zinc-500">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-zinc-600" />
+        <span>
+          Confidential ops run on <span className="text-zinc-300">Sepolia</span>. Ethereum is
+          read-only today — mainnet writes are on the roadmap (one config away).
+        </span>
+      </div>
 
       {/* Embeddable widget + live preview */}
       <section className="mt-14 grid gap-8 lg:grid-cols-2">
@@ -120,12 +111,40 @@ export default function DevelopersPage() {
             by Confidium, invisibly.
           </p>
           <EmbedSnippet token={SAMPLE_TOKEN} />
-          <p className="mt-4 text-xs leading-relaxed text-zinc-500">
-            Params: <code className="font-mono text-zinc-300">token</code> (ERC-7984 address),
-            optional <code className="font-mono text-zinc-300">u</code> (underlying, for custom pairs),
-            and <code className="font-mono text-zinc-300">action</code> (
-            <code className="font-mono">wrap</code> | <code className="font-mono">unwrap</code>).
-          </p>
+
+          <div className="mt-6">
+            <div className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+              Parameters
+            </div>
+            <dl className="mt-3 space-y-2.5 text-sm">
+              <div className="flex gap-3">
+                <dt className="w-16 shrink-0 font-mono text-accent-hover">token</dt>
+                <dd className="text-zinc-400">
+                  ERC-7984 wrapper address <span className="text-zinc-600">· required</span>
+                </dd>
+              </div>
+              <div className="flex gap-3">
+                <dt className="w-16 shrink-0 font-mono text-accent-hover">u</dt>
+                <dd className="text-zinc-400">Underlying ERC-20 — only for custom pairs</dd>
+              </div>
+              <div className="flex gap-3">
+                <dt className="w-16 shrink-0 font-mono text-accent-hover">action</dt>
+                <dd className="text-zinc-400">
+                  <code className="font-mono text-zinc-300">wrap</code> (default) or{" "}
+                  <code className="font-mono text-zinc-300">unwrap</code>
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          <div className="mt-6 flex items-start gap-2.5 rounded-2xl border border-hairline bg-surface p-4 text-xs leading-relaxed text-zinc-500">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-zinc-600" />
+            <span>
+              Cross-origin embedding requires the host page to send a{" "}
+              <code className="font-mono text-zinc-400">Cross-Origin-Embedder-Policy</code> header (the
+              FHE SDK needs cross-origin isolation). Same-origin embeds work out of the box.
+            </span>
+          </div>
         </div>
 
         <div>
@@ -144,36 +163,10 @@ export default function DevelopersPage() {
             <iframe
               src={`/embed?token=${SAMPLE_TOKEN}`}
               title="Confidium wrap widget"
-              className="h-[600px] w-full bg-canvas"
+              className="h-150 w-full bg-canvas"
             />
           </div>
         </div>
-      </section>
-
-      {/* Deployed contracts */}
-      <section className="mt-14">
-        <div className="flex items-center gap-2">
-          <Boxes className="h-4 w-4 text-accent" />
-          <h2 className="text-lg font-semibold text-zinc-100">Deployed contracts</h2>
-          <span className="text-xs text-zinc-500">· Sepolia</span>
-        </div>
-        <div className="mt-4 overflow-hidden rounded-2xl border border-hairline bg-surface">
-          <ul className="divide-y divide-hairline">
-            {CONTRACTS.map(({ label, address }) => (
-              <li key={address} className="flex items-center justify-between gap-3 px-5 py-3.5">
-                <span className="text-sm font-medium text-zinc-100">{label}</span>
-                <AddressChip address={address} explorerBase={SEPOLIA_EXPLORER} />
-              </li>
-            ))}
-          </ul>
-        </div>
-        <p className="mt-3 text-xs text-zinc-500">
-          Every registered pair is read live from the Registry — browse them all in the{" "}
-          <a href="/registry" className="text-accent-hover underline underline-offset-2 hover:text-accent">
-            explorer
-          </a>
-          .
-        </p>
       </section>
     </main>
   );
