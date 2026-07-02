@@ -11,7 +11,9 @@ import {
   useWriteContract,
 } from "wagmi";
 import {
+  BaseError,
   bytesToHex,
+  ContractFunctionRevertedError,
   encodeFunctionData,
   formatUnits,
   getAddress,
@@ -219,6 +221,19 @@ function safeParse(value: string, decimals: number): bigint {
   }
 }
 
+/** Human-readable message from a wallet/contract error — surfaces the on-chain revert reason,
+ *  which viem otherwise buries on a later line of `.message`. */
+function errText(e: unknown): string {
+  if (e instanceof BaseError) {
+    const revert = e.walk((err) => err instanceof ContractFunctionRevertedError);
+    if (revert instanceof ContractFunctionRevertedError) {
+      return revert.reason || revert.shortMessage;
+    }
+    return e.shortMessage;
+  }
+  return (e as Error)?.message?.split("\n")[0] || "Something went wrong";
+}
+
 /** The SDK may return ciphertext handles/proofs as Uint8Array or hex string — normalize to hex. */
 function toHexHandle(h: unknown): `0x${string}` {
   if (typeof h === "string") return (h.startsWith("0x") ? h : `0x${h}`) as `0x${string}`;
@@ -330,7 +345,7 @@ function FaucetCard({ pair, onDone }: { pair: UiPair; onDone: () => void }) {
         <Droplets className="h-4 w-4" />
         {isPending ? "Claiming…" : "Claim tokens"}
       </button>
-      {error && <p className="mt-2 text-xs text-danger">{error.message.split("\n")[0]}</p>}
+      {error && <p className="mt-2 text-xs text-danger">{errText(error)}</p>}
       <TxStatus hash={hash} isConfirming={isConfirming} isConfirmed={isConfirmed} />
       {doneHash && <ResultLine hash={doneHash} label="Claimed" />}
       <div className="mt-4">
@@ -452,7 +467,7 @@ export function WrapCard({ pair, onDone }: { pair: UiPair; onDone: () => void })
           Insufficient {pair.underlyingMeta.symbol ?? "token"} balance — claim from the faucet first.
         </p>
       )}
-      {error && <p className="mt-2 text-xs text-danger">{error.message.split("\n")[0]}</p>}
+      {error && <p className="mt-2 text-xs text-danger">{errText(error)}</p>}
       <TxStatus hash={hash} isConfirming={isConfirming} isConfirmed={isConfirmed} />
       {!needsApproval && lastAction === "approve" && !doneHash && (
         <p className="mt-2 text-xs text-success">
@@ -547,7 +562,7 @@ export function UnwrapCard({
       setPhase("finalizeReady");
     } catch (e) {
       setError(
-        (e as Error).message.split("\n")[0] ?? "Couldn't decrypt the amount yet — retry in a moment.",
+        errText(e) ?? "Couldn't decrypt the amount yet — retry in a moment.",
       );
       setPhase("decryptFailed");
     }
@@ -612,7 +627,7 @@ export function UnwrapCard({
       setPrepared({ handle: toHexHandle(enc.handles[0]), proof: toHexHandle(enc.inputProof) });
       setPhase("ready");
     } catch (e) {
-      setError((e as Error).message.split("\n")[0] ?? "Encryption failed");
+      setError(errText(e) ?? "Encryption failed");
       setPhase("error");
     }
   }
@@ -632,7 +647,7 @@ export function UnwrapCard({
       setPrepared(null);
       setPhase("burning");
     } catch (e) {
-      setError((e as Error).message.split("\n")[0] ?? "Unwrap failed");
+      setError(errText(e) ?? "Unwrap failed");
       setPhase("ready");
     }
   }
@@ -651,7 +666,7 @@ export function UnwrapCard({
       setHash(txHash);
       setPhase("finalizing");
     } catch (e) {
-      setError((e as Error).message.split("\n")[0] ?? "Finalize failed");
+      setError(errText(e) ?? "Finalize failed");
       setPhase("finalizeReady");
     }
   }
@@ -843,7 +858,7 @@ function TransferCard({
       setPrepared({ handle: toHexHandle(enc.handles[0]), proof: toHexHandle(enc.inputProof) });
       setPhase("ready");
     } catch (e) {
-      setError((e as Error).message.split("\n")[0] ?? "Encryption failed");
+      setError(errText(e) ?? "Encryption failed");
       setPhase("error");
     }
   }
@@ -863,7 +878,7 @@ function TransferCard({
       setPrepared(null);
       setPhase("sending");
     } catch (e) {
-      setError((e as Error).message.split("\n")[0] ?? "Transfer failed");
+      setError(errText(e) ?? "Transfer failed");
       setPhase("ready");
     }
   }
