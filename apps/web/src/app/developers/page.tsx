@@ -30,7 +30,7 @@ const RESOURCES = [
 
 const PACKAGE_INFO = [
   ["Package", "@confidium/core"],
-  ["Version", "0.1.0"],
+  ["Version", "0.1.1"],
   ["License", "MIT"],
   ["Requires", "viem ^2"],
   ["Networks", "Sepolia · Ethereum"],

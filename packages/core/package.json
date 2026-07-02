@@ -1,6 +1,6 @@
 {
   "name": "@confidium/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Framework-agnostic SDK for the Zama Confidential Wrappers Registry (ERC-7984): live registry reads, pair verification, ABIs, and canonical addresses.",
   "license": "MIT",
   "type": "module",
@@ -28,7 +28,7 @@
   },
   "homepage": "https://github.com/NueloSE/confidium/tree/main/packages/core#readme",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/add-dist-extensions.mjs",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "pnpm run build"
   },
