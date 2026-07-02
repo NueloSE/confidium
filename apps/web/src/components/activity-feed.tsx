@@ -38,11 +38,31 @@ function relTime(ts: number | null): string {
   return new Date(ts * 1000).toLocaleDateString();
 }
 
+const FILTERS: { key: ActivityKind | "all"; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "wrap", label: "Wrapped" },
+  { key: "unwrap", label: "Unwrapped" },
+  { key: "send", label: "Sent" },
+  { key: "receive", label: "Received" },
+];
+
+/** Day bucket for grouping (items arrive newest-first). */
+function bucketOf(ts: number | null): string {
+  if (!ts) return "Earlier";
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() / 1000;
+  if (ts >= startToday) return "Today";
+  if (ts >= startToday - 86400) return "Yesterday";
+  if (ts >= startToday - 7 * 86400) return "This week";
+  return "Earlier";
+}
+
 export function ActivityFeed() {
   const { address, isConnected } = useAccount();
   const [items, setItems] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<ActivityKind | "all">("all");
 
   const load = useCallback(async () => {
     if (!address) return;
@@ -72,17 +92,43 @@ export function ActivityFeed() {
     );
   }
 
+  const filtered = filter === "all" ? items : items.filter((i) => i.kind === filter);
+  const groups: { label: string; items: ActivityItem[] }[] = [];
+  for (const item of filtered) {
+    const b = bucketOf(item.timestamp);
+    const g = groups[groups.length - 1];
+    if (g && g.label === b) g.items.push(item);
+    else groups.push({ label: b, items: [item] });
+  }
+  const filterLabel = FILTERS.find((f) => f.key === filter)?.label ?? "";
+
   return (
     <div className="rounded-2xl border border-hairline bg-surface">
-      <div className="flex items-center justify-between gap-3 border-b border-hairline px-5 py-3.5">
-        <div className="flex items-center gap-2 text-xs text-zinc-500">
-          <Lock className="h-3.5 w-3.5 text-accent" />
-          Amounts stay encrypted — only you can reveal them.
+      {/* Toolbar: filter pills + refresh */}
+      <div className="flex items-center justify-between gap-3 border-b border-hairline px-3 py-2.5 sm:px-4">
+        <div className="-mx-1 flex gap-1 overflow-x-auto px-1">
+          {FILTERS.map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setFilter(f.key)}
+              aria-current={filter === f.key ? "true" : undefined}
+              className={cn(
+                "shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors duration-150",
+                filter === f.key
+                  ? "bg-accent-soft text-accent-hover"
+                  : "text-zinc-400 hover:bg-white/5 hover:text-zinc-100",
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
         <button
           type="button"
           onClick={() => load()}
           disabled={loading}
+          aria-label="Refresh"
           className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-hairline px-2.5 py-1.5 text-xs text-zinc-300 transition-colors hover:bg-elevated disabled:opacity-50"
         >
           {loading ? (
@@ -90,7 +136,7 @@ export function ActivityFeed() {
           ) : (
             <RefreshCw className="h-3.5 w-3.5" />
           )}
-          Refresh
+          <span className="hidden sm:inline">Refresh</span>
         </button>
       </div>
 
@@ -114,57 +160,78 @@ export function ActivityFeed() {
             Wrap, unwrap, or send a confidential token to see it here.
           </p>
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 px-5 py-14 text-center">
+          <Inbox className="h-6 w-6 text-zinc-600" />
+          <p className="text-sm text-zinc-400">No {filterLabel.toLowerCase()} activity yet.</p>
+          <button
+            type="button"
+            onClick={() => setFilter("all")}
+            className="text-xs font-medium text-accent-hover transition-colors hover:text-accent"
+          >
+            Show all
+          </button>
+        </div>
       ) : (
-        <ul className="divide-y divide-hairline">
-          {items.map((item, i) => {
-            const k = KIND[item.kind];
-            return (
-              <li key={`${item.txHash}-${i}`} className="flex items-center gap-3 px-5 py-3.5">
-                <div className="relative">
-                  <TokenIcon address={item.wrapper} symbol={item.symbol} size="md" />
-                  <span
-                    className={cn(
-                      "absolute -bottom-1 -left-1 grid h-4 w-4 place-items-center rounded-full ring-2 ring-surface",
-                      k.dir === "in" ? "bg-success text-black" : "bg-surface-2 text-zinc-300",
-                    )}
-                  >
-                    <k.Icon className="h-2.5 w-2.5" strokeWidth={2.5} />
-                  </span>
-                </div>
+        <div>
+          {groups.map((group) => (
+            <div key={group.label}>
+              <div className="border-b border-hairline bg-surface-2/30 px-5 py-2 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+                {group.label}
+              </div>
+              <ul className="divide-y divide-hairline">
+                {group.items.map((item, i) => {
+                  const k = KIND[item.kind];
+                  return (
+                    <li key={`${item.txHash}-${i}`} className="flex items-center gap-3 px-5 py-3.5">
+                      <div className="relative">
+                        <TokenIcon address={item.wrapper} symbol={item.symbol} size="md" />
+                        <span
+                          className={cn(
+                            "absolute -bottom-1 -left-1 grid h-4 w-4 place-items-center rounded-full ring-2 ring-surface",
+                            k.dir === "in" ? "bg-success text-black" : "bg-surface-2 text-zinc-300",
+                          )}
+                        >
+                          <k.Icon className="h-2.5 w-2.5" strokeWidth={2.5} />
+                        </span>
+                      </div>
 
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5 text-sm text-zinc-100">
-                    <span className="font-medium">{k.label}</span>
-                    <span className="text-zinc-400">{item.symbol}</span>
-                  </div>
-                  <div className="mt-0.5 truncate font-mono text-xs text-zinc-500">
-                    {item.counterparty
-                      ? `${item.kind === "send" ? "to" : "from"} ${short(item.counterparty)}`
-                      : item.kind === "wrap"
-                        ? "from your ERC-20"
-                        : "to your ERC-20"}
-                  </div>
-                </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 text-sm text-zinc-100">
+                          <span className="font-medium">{k.label}</span>
+                          <span className="text-zinc-400">{item.symbol}</span>
+                        </div>
+                        <div className="mt-0.5 truncate font-mono text-xs text-zinc-500">
+                          {item.counterparty
+                            ? `${item.kind === "send" ? "to" : "from"} ${short(item.counterparty)}`
+                            : item.kind === "wrap"
+                              ? "from your ERC-20"
+                              : "to your ERC-20"}
+                        </div>
+                      </div>
 
-                <span className="hidden items-center gap-1 rounded-md bg-surface-2 px-2 py-1 text-[11px] text-zinc-400 sm:inline-flex">
-                  <Lock className="h-3 w-3" /> encrypted
-                </span>
+                      <span className="hidden items-center gap-1 rounded-md bg-surface-2 px-2 py-1 text-[11px] text-zinc-400 sm:inline-flex">
+                        <Lock className="h-3 w-3" /> encrypted
+                      </span>
 
-                <div className="flex shrink-0 flex-col items-end gap-1">
-                  <span className="text-xs text-zinc-500">{relTime(item.timestamp)}</span>
-                  <a
-                    href={`${EXPLORER}/tx/${item.txHash}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-zinc-500 transition-colors hover:text-zinc-200"
-                  >
-                    tx <ExternalLink className="h-3 w-3" />
-                  </a>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <span className="text-xs text-zinc-500">{relTime(item.timestamp)}</span>
+                        <a
+                          href={`${EXPLORER}/tx/${item.txHash}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-zinc-500 transition-colors hover:text-zinc-200"
+                        >
+                          tx <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
       )}
 
       {error && items.length === 0 && (

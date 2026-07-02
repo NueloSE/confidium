@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Check, Copy, Terminal } from "lucide-react";
+import { HighlightedCode } from "@/components/highlighted-code";
 import { cn } from "@/components/ui/cn";
 
 const INSTALL = "npm install @confidium/core viem";
@@ -101,7 +102,9 @@ export function SdkExamples() {
         </div>
         <div className="relative">
           <pre className="overflow-x-auto p-4 pr-16 font-mono text-xs leading-relaxed text-zinc-300">
-            <code>{TABS[tab]}</code>
+            <code>
+              <HighlightedCode code={TABS[tab]} />
+            </code>
           </pre>
           <CopyButton text={TABS[tab]} className="absolute right-2 top-2" />
         </div>
