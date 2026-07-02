@@ -20,7 +20,18 @@ import {
   parseUnits,
 } from "viem";
 import { erc20Abi, erc7984Abi, SEPOLIA_CHAIN_ID } from "@confidium/core";
-import { Check, Droplets, Info, Lock, Send, ShieldAlert, Unlock, Wallet } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Droplets,
+  Info,
+  Lock,
+  Send,
+  ShieldAlert,
+  Unlock,
+  Wallet,
+} from "lucide-react";
 import { getFhevmInstance } from "@/lib/fhevm";
 import { DecryptBalance } from "@/components/decrypt-balance";
 import { UnwrapSteps } from "@/components/unwrap-steps";
@@ -63,32 +74,68 @@ function Card({
   );
 }
 
-/** Amount input with a token-symbol suffix and an optional read-only "output preview" look. */
+/** Amount input with up/down steppers, a token-symbol suffix, and an optional read-only look. */
 function AmountInput({
   suffix,
   readOnly,
+  disabled,
   className,
+  value,
+  onChange,
   ...props
 }: { suffix?: string; readOnly?: boolean } & React.InputHTMLAttributes<HTMLInputElement>) {
+  const showStepper = !readOnly && !disabled;
+
+  const step = (delta: number) => {
+    const current = parseFloat(String(value ?? "")) || 0;
+    const next = Math.max(0, Math.round((current + delta) * 1e6) / 1e6);
+    onChange?.({
+      target: { value: String(next) },
+    } as unknown as React.ChangeEvent<HTMLInputElement>);
+  };
+
   return (
     <div className="relative">
       <input
         {...props}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
         inputMode="decimal"
         readOnly={readOnly}
         className={cn(
           inputCls,
           "font-mono tabular-nums",
           readOnly && "cursor-default text-zinc-400",
-          suffix && "pr-24",
+          readOnly ? suffix && "pr-24" : suffix ? "pr-32" : "pr-12",
           className,
         )}
       />
-      {suffix && (
-        <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-sm text-zinc-500">
-          {suffix}
-        </span>
-      )}
+      <div className="pointer-events-none absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-2">
+        {showStepper && (
+          <div className="pointer-events-auto flex flex-col overflow-hidden rounded-md border border-hairline">
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-label="Increase amount"
+              onClick={() => step(1)}
+              className="grid h-3.5 w-5 place-items-center text-zinc-400 transition-colors duration-100 hover:bg-white/5 hover:text-zinc-100 active:bg-white/10"
+            >
+              <ChevronUp className="h-3 w-3" />
+            </button>
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-label="Decrease amount"
+              onClick={() => step(-1)}
+              className="grid h-3.5 w-5 place-items-center border-t border-hairline text-zinc-400 transition-colors duration-100 hover:bg-white/5 hover:text-zinc-100 active:bg-white/10"
+            >
+              <ChevronDown className="h-3 w-3" />
+            </button>
+          </div>
+        )}
+        {suffix && <span className="text-sm text-zinc-500">{suffix}</span>}
+      </div>
     </div>
   );
 }

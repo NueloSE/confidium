@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useAccount, useConnect, useDisconnect, useChainId, useSwitchChain } from "wagmi";
 import { sepolia } from "wagmi/chains";
 import { Loader2, LogOut, Wallet, X } from "lucide-react";
@@ -45,13 +46,15 @@ export function ConnectButton() {
           Connect wallet
         </Button>
 
-        {open && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Connect a wallet"
-          >
+        {open &&
+          typeof document !== "undefined" &&
+          createPortal(
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Connect a wallet"
+            >
             <div
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
               onClick={() => setOpen(false)}
@@ -119,8 +122,9 @@ export function ConnectButton() {
                 <p className="mt-3 text-xs text-danger">{error.message.split("\n")[0]}</p>
               )}
             </div>
-          </div>
-        )}
+          </div>,
+            document.body,
+          )}
       </>
     );
   }
