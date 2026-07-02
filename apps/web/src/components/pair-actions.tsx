@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
   useAccount,
   useChainId,
@@ -894,7 +894,9 @@ export function PairActions({ pair, header }: { pair: UiPair; header?: ReactNode
   const [tab, setTab] = useState<ActionTab>("wrap");
   const [tabTouched, setTabTouched] = useState(false);
   const [unwrapActive, setUnwrapActive] = useState(false);
-  const bump = () => setRefreshKey((k) => k + 1);
+  // Stable identity: the action cards keep `onDone` in their effect deps, and an unstable
+  // reference here loops after the approve step confirms (Maximum update depth exceeded).
+  const bump = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   const { data: underlyingBalance } = useReadContract({
     address: pair.underlying as `0x${string}`,
