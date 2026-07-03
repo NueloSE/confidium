@@ -63,6 +63,9 @@ export function ActivityFeed() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<ActivityKind | "all">("all");
+  const [limit, setLimit] = useState(12);
+
+  const cacheKey = address ? `confidium.activity.${address.toLowerCase()}` : null;
 
   const load = useCallback(async () => {
     if (!address) return;
@@ -71,7 +74,13 @@ export function ActivityFeed() {
     try {
       const res = await fetch(`/api/activity?user=${address}`);
       const json = (await res.json()) as { items?: ActivityItem[]; error?: string };
-      setItems(json.items ?? []);
+      const next = json.items ?? [];
+      setItems(next);
+      try {
+        localStorage.setItem(`confidium.activity.${address.toLowerCase()}`, JSON.stringify(next));
+      } catch {
+        /* storage unavailable */
+      }
       if (json.error) setError(json.error);
     } catch {
       setError("Couldn't load your activity.");
@@ -80,9 +89,21 @@ export function ActivityFeed() {
     }
   }, [address]);
 
+  // Show the last cached feed instantly, then refresh in the background — the on-chain
+  // reconstruction can take 10-15s on public RPCs, so we don't block the UI on it.
   useEffect(() => {
+    if (!cacheKey) {
+      setItems([]);
+      return;
+    }
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) setItems(JSON.parse(cached) as ActivityItem[]);
+    } catch {
+      /* ignore */
+    }
     void load();
-  }, [load]);
+  }, [cacheKey, load]);
 
   if (!isConnected) {
     return (
@@ -93,8 +114,9 @@ export function ActivityFeed() {
   }
 
   const filtered = filter === "all" ? items : items.filter((i) => i.kind === filter);
+  const visible = filtered.slice(0, limit);
   const groups: { label: string; items: ActivityItem[] }[] = [];
-  for (const item of filtered) {
+  for (const item of visible) {
     const b = bucketOf(item.timestamp);
     const g = groups[groups.length - 1];
     if (g && g.label === b) g.items.push(item);
@@ -111,7 +133,10 @@ export function ActivityFeed() {
             <button
               key={f.key}
               type="button"
-              onClick={() => setFilter(f.key)}
+              onClick={() => {
+                setFilter(f.key);
+                setLimit(12);
+              }}
               aria-current={filter === f.key ? "true" : undefined}
               className={cn(
                 "shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors duration-150",
@@ -140,106 +165,109 @@ export function ActivityFeed() {
         </button>
       </div>
 
-      <div className="max-h-[60vh] overflow-y-auto">
-        {loading && items.length === 0 ? (
-          <div className="divide-y divide-hairline">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="flex items-center gap-3 px-5 py-4">
-                <div className="h-9 w-9 animate-pulse rounded-full bg-surface-2" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-3 w-32 animate-pulse rounded bg-surface-2" />
-                  <div className="h-2.5 w-20 animate-pulse rounded bg-surface-2" />
-                </div>
+      {loading && items.length === 0 ? (
+        <div className="divide-y divide-hairline">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex items-center gap-3 px-5 py-4">
+              <div className="h-9 w-9 animate-pulse rounded-full bg-surface-2" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 w-32 animate-pulse rounded bg-surface-2" />
+                <div className="h-2.5 w-20 animate-pulse rounded bg-surface-2" />
               </div>
-            ))}
-          </div>
-        ) : items.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 px-5 py-14 text-center">
-            <Inbox className="h-6 w-6 text-zinc-600" />
-            <p className="text-sm text-zinc-400">No recent activity.</p>
-            <p className="text-xs text-zinc-600">
-              Wrap, unwrap, or send a confidential token to see it here.
-            </p>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 px-5 py-14 text-center">
-            <Inbox className="h-6 w-6 text-zinc-600" />
-            <p className="text-sm text-zinc-400">No {filterLabel.toLowerCase()} activity yet.</p>
-            <button
-              type="button"
-              onClick={() => setFilter("all")}
-              className="text-xs font-medium text-accent-hover transition-colors hover:text-accent"
-            >
-              Show all
-            </button>
-          </div>
-        ) : (
-          <div>
-            {groups.map((group) => (
-              <div key={group.label}>
-                <div className="sticky top-0 z-10 border-b border-hairline bg-surface/95 px-5 py-2 text-[11px] font-medium uppercase tracking-wider text-zinc-500 backdrop-blur">
-                  {group.label}
-                </div>
-                <ul className="divide-y divide-hairline">
-                  {group.items.map((item, i) => {
-                    const k = KIND[item.kind];
-                    return (
-                      <li
-                        key={`${item.txHash}-${i}`}
-                        className="flex items-center gap-3 px-5 py-3.5"
-                      >
-                        <div className="relative">
-                          <TokenIcon address={item.wrapper} symbol={item.symbol} size="md" />
-                          <span
-                            className={cn(
-                              "absolute -bottom-1 -left-1 grid h-4 w-4 place-items-center rounded-full ring-2 ring-surface",
-                              k.dir === "in"
-                                ? "bg-success text-black"
-                                : "bg-surface-2 text-zinc-300",
-                            )}
-                          >
-                            <k.Icon className="h-2.5 w-2.5" strokeWidth={2.5} />
-                          </span>
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 text-sm text-zinc-100">
-                            <span className="font-medium">{k.label}</span>
-                            <span className="text-zinc-400">{item.symbol}</span>
-                          </div>
-                          <div className="mt-0.5 truncate font-mono text-xs text-zinc-500">
-                            {item.counterparty
-                              ? `${item.kind === "send" ? "to" : "from"} ${short(item.counterparty)}`
-                              : item.kind === "wrap"
-                                ? "from your ERC-20"
-                                : "to your ERC-20"}
-                          </div>
-                        </div>
-
-                        <span className="hidden items-center gap-1 rounded-md bg-surface-2 px-2 py-1 text-[11px] text-zinc-400 sm:inline-flex">
-                          <Lock className="h-3 w-3" /> encrypted
+            </div>
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 px-5 py-14 text-center">
+          <Inbox className="h-6 w-6 text-zinc-600" />
+          <p className="text-sm text-zinc-400">No recent activity.</p>
+          <p className="text-xs text-zinc-600">
+            Wrap, unwrap, or send a confidential token to see it here.
+          </p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 px-5 py-14 text-center">
+          <Inbox className="h-6 w-6 text-zinc-600" />
+          <p className="text-sm text-zinc-400">No {filterLabel.toLowerCase()} activity yet.</p>
+          <button
+            type="button"
+            onClick={() => setFilter("all")}
+            className="text-xs font-medium text-accent-hover transition-colors hover:text-accent"
+          >
+            Show all
+          </button>
+        </div>
+      ) : (
+        <div>
+          {groups.map((group) => (
+            <div key={group.label}>
+              <div className="border-b border-hairline bg-surface-2/30 px-5 py-2 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+                {group.label}
+              </div>
+              <ul className="divide-y divide-hairline">
+                {group.items.map((item, i) => {
+                  const k = KIND[item.kind];
+                  return (
+                    <li key={`${item.txHash}-${i}`} className="flex items-center gap-3 px-5 py-3.5">
+                      <div className="relative">
+                        <TokenIcon address={item.wrapper} symbol={item.symbol} size="md" />
+                        <span
+                          className={cn(
+                            "absolute -bottom-1 -left-1 grid h-4 w-4 place-items-center rounded-full ring-2 ring-surface",
+                            k.dir === "in" ? "bg-success text-black" : "bg-surface-2 text-zinc-300",
+                          )}
+                        >
+                          <k.Icon className="h-2.5 w-2.5" strokeWidth={2.5} />
                         </span>
+                      </div>
 
-                        <div className="flex shrink-0 flex-col items-end gap-1">
-                          <span className="text-xs text-zinc-500">{relTime(item.timestamp)}</span>
-                          <a
-                            href={`${EXPLORER}/tx/${item.txHash}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-xs text-zinc-500 transition-colors hover:text-zinc-200"
-                          >
-                            tx <ExternalLink className="h-3 w-3" />
-                          </a>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 text-sm text-zinc-100">
+                          <span className="font-medium">{k.label}</span>
+                          <span className="text-zinc-400">{item.symbol}</span>
                         </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                        <div className="mt-0.5 truncate font-mono text-xs text-zinc-500">
+                          {item.counterparty
+                            ? `${item.kind === "send" ? "to" : "from"} ${short(item.counterparty)}`
+                            : item.kind === "wrap"
+                              ? "from your ERC-20"
+                              : "to your ERC-20"}
+                        </div>
+                      </div>
+
+                      <span className="hidden items-center gap-1 rounded-md bg-surface-2 px-2 py-1 text-[11px] text-zinc-400 sm:inline-flex">
+                        <Lock className="h-3 w-3" /> encrypted
+                      </span>
+
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <span className="text-xs text-zinc-500">{relTime(item.timestamp)}</span>
+                        <a
+                          href={`${EXPLORER}/tx/${item.txHash}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-zinc-500 transition-colors hover:text-zinc-200"
+                        >
+                          tx <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {visible.length < filtered.length && (
+        <button
+          type="button"
+          onClick={() => setLimit((l) => l + 12)}
+          className="w-full border-t border-hairline px-5 py-3 text-xs font-medium text-accent-hover transition-colors hover:bg-white/5 hover:text-accent"
+        >
+          Show {filtered.length - limit} more
+        </button>
+      )}
 
       {error && items.length === 0 && (
         <p className="border-t border-hairline px-5 py-3 text-xs text-danger">{error}</p>
