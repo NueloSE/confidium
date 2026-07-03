@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { useAccount, useConnect, useDisconnect, useChainId, useSwitchChain } from "wagmi";
+import {
+  useAccount,
+  useConnect,
+  useDisconnect,
+  useChainId,
+  useReconnect,
+  useSwitchChain,
+} from "wagmi";
 import { sepolia } from "wagmi/chains";
 import { Loader2, LogOut, Wallet, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,13 +24,30 @@ export function ConnectButton() {
   const { disconnect } = useDisconnect();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
+  const { reconnect } = useReconnect();
   const [open, setOpen] = useState(false);
   const [pendingUid, setPendingUid] = useState<string | null>(null);
+  const [stuck, setStuck] = useState(false);
 
-  // Close the picker once a wallet connects.
+  // Sync the UI once a wallet connects.
   useEffect(() => {
-    if (isConnected) setOpen(false);
+    if (isConnected) {
+      setOpen(false);
+      setPendingUid(null);
+      setStuck(false);
+    }
   }, [isConnected]);
+
+  // Some wallets (e.g. Flow) approve the connection but don't notify wagmi until the next
+  // reconnect — offer a manual recovery if a connect attempt stays pending too long.
+  useEffect(() => {
+    if (!pendingUid) {
+      setStuck(false);
+      return;
+    }
+    const t = setTimeout(() => setStuck(true), 5000);
+    return () => clearTimeout(t);
+  }, [pendingUid]);
 
   // Escape closes the picker.
   useEffect(() => {
@@ -96,8 +120,9 @@ export function ConnectButton() {
                       type="button"
                       disabled={isPending}
                       onClick={() => {
+                        setStuck(false);
                         setPendingUid(c.uid);
-                        connect({ connector: c });
+                        connect({ connector: c }, { onError: () => setPendingUid(null) });
                       }}
                       className="flex w-full items-center gap-3 rounded-xl border border-hairline bg-surface px-3 py-2.5 text-left transition-colors duration-150 hover:border-hairline-strong hover:bg-elevated disabled:opacity-60"
                     >
@@ -118,6 +143,27 @@ export function ConnectButton() {
                 </div>
               )}
 
+              {stuck && !error && (
+                <div className="mt-3 rounded-xl border border-warn/30 bg-warn-soft p-3 text-xs leading-relaxed text-warn">
+                  Approved in your wallet but not detected yet — some wallets connect silently.{" "}
+                  <button
+                    type="button"
+                    onClick={() => reconnect()}
+                    className="font-medium underline underline-offset-2 hover:text-warn/80"
+                  >
+                    Finish connecting
+                  </button>{" "}
+                  or{" "}
+                  <button
+                    type="button"
+                    onClick={() => window.location.reload()}
+                    className="font-medium underline underline-offset-2 hover:text-warn/80"
+                  >
+                    reload
+                  </button>
+                  .
+                </div>
+              )}
               {error && (
                 <p className="mt-3 text-xs text-danger">{error.message.split("\n")[0]}</p>
               )}
