@@ -642,7 +642,9 @@ export function UnwrapCard({
         functionName: "unwrap",
         args: [address, address, prepared.handle, prepared.proof],
       });
-      const txHash = await sendTx(data, 3_000_000);
+      // Calibrated to measured on-chain usage (~0.49M) with ~2.6x headroom — the heavy FHE
+      // verification runs off-chain in the coprocessor, so the on-chain gas is modest.
+      const txHash = await sendTx(data, 1_300_000);
       setHash(txHash);
       setPrepared(null);
       setPhase("burning");
@@ -662,7 +664,7 @@ export function UnwrapCard({
         functionName: "finalizeUnwrap",
         args: [requestId, finalizeData.cleartext, finalizeData.proof],
       });
-      const txHash = await sendTx(data, 2_000_000);
+      const txHash = await sendTx(data, 1_300_000);
       setHash(txHash);
       setPhase("finalizing");
     } catch (e) {
@@ -832,6 +834,7 @@ function TransferCard({
       setSentHash(receipt.transactionHash);
       setHash(undefined);
       setPrepared(null);
+      setTo("");
       setAmount("");
       setPhase("idle");
       onDone();
@@ -873,7 +876,7 @@ function TransferCard({
         functionName: "confidentialTransfer",
         args: [getAddress(to.trim()), prepared.handle, prepared.proof],
       });
-      const txHash = await sendTx(data, 2_000_000);
+      const txHash = await sendTx(data, 1_300_000);
       setHash(txHash);
       setPrepared(null);
       setPhase("sending");

@@ -140,99 +140,106 @@ export function ActivityFeed() {
         </button>
       </div>
 
-      {loading && items.length === 0 ? (
-        <div className="divide-y divide-hairline">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="flex items-center gap-3 px-5 py-4">
-              <div className="h-9 w-9 animate-pulse rounded-full bg-surface-2" />
-              <div className="flex-1 space-y-2">
-                <div className="h-3 w-32 animate-pulse rounded bg-surface-2" />
-                <div className="h-2.5 w-20 animate-pulse rounded bg-surface-2" />
+      <div className="max-h-[60vh] overflow-y-auto">
+        {loading && items.length === 0 ? (
+          <div className="divide-y divide-hairline">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-3 px-5 py-4">
+                <div className="h-9 w-9 animate-pulse rounded-full bg-surface-2" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-32 animate-pulse rounded bg-surface-2" />
+                  <div className="h-2.5 w-20 animate-pulse rounded bg-surface-2" />
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      ) : items.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 px-5 py-14 text-center">
-          <Inbox className="h-6 w-6 text-zinc-600" />
-          <p className="text-sm text-zinc-400">No recent activity.</p>
-          <p className="text-xs text-zinc-600">
-            Wrap, unwrap, or send a confidential token to see it here.
-          </p>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 px-5 py-14 text-center">
-          <Inbox className="h-6 w-6 text-zinc-600" />
-          <p className="text-sm text-zinc-400">No {filterLabel.toLowerCase()} activity yet.</p>
-          <button
-            type="button"
-            onClick={() => setFilter("all")}
-            className="text-xs font-medium text-accent-hover transition-colors hover:text-accent"
-          >
-            Show all
-          </button>
-        </div>
-      ) : (
-        <div>
-          {groups.map((group) => (
-            <div key={group.label}>
-              <div className="border-b border-hairline bg-surface-2/30 px-5 py-2 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-                {group.label}
-              </div>
-              <ul className="divide-y divide-hairline">
-                {group.items.map((item, i) => {
-                  const k = KIND[item.kind];
-                  return (
-                    <li key={`${item.txHash}-${i}`} className="flex items-center gap-3 px-5 py-3.5">
-                      <div className="relative">
-                        <TokenIcon address={item.wrapper} symbol={item.symbol} size="md" />
-                        <span
-                          className={cn(
-                            "absolute -bottom-1 -left-1 grid h-4 w-4 place-items-center rounded-full ring-2 ring-surface",
-                            k.dir === "in" ? "bg-success text-black" : "bg-surface-2 text-zinc-300",
-                          )}
-                        >
-                          <k.Icon className="h-2.5 w-2.5" strokeWidth={2.5} />
+            ))}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 px-5 py-14 text-center">
+            <Inbox className="h-6 w-6 text-zinc-600" />
+            <p className="text-sm text-zinc-400">No recent activity.</p>
+            <p className="text-xs text-zinc-600">
+              Wrap, unwrap, or send a confidential token to see it here.
+            </p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 px-5 py-14 text-center">
+            <Inbox className="h-6 w-6 text-zinc-600" />
+            <p className="text-sm text-zinc-400">No {filterLabel.toLowerCase()} activity yet.</p>
+            <button
+              type="button"
+              onClick={() => setFilter("all")}
+              className="text-xs font-medium text-accent-hover transition-colors hover:text-accent"
+            >
+              Show all
+            </button>
+          </div>
+        ) : (
+          <div>
+            {groups.map((group) => (
+              <div key={group.label}>
+                <div className="sticky top-0 z-10 border-b border-hairline bg-surface/95 px-5 py-2 text-[11px] font-medium uppercase tracking-wider text-zinc-500 backdrop-blur">
+                  {group.label}
+                </div>
+                <ul className="divide-y divide-hairline">
+                  {group.items.map((item, i) => {
+                    const k = KIND[item.kind];
+                    return (
+                      <li
+                        key={`${item.txHash}-${i}`}
+                        className="flex items-center gap-3 px-5 py-3.5"
+                      >
+                        <div className="relative">
+                          <TokenIcon address={item.wrapper} symbol={item.symbol} size="md" />
+                          <span
+                            className={cn(
+                              "absolute -bottom-1 -left-1 grid h-4 w-4 place-items-center rounded-full ring-2 ring-surface",
+                              k.dir === "in"
+                                ? "bg-success text-black"
+                                : "bg-surface-2 text-zinc-300",
+                            )}
+                          >
+                            <k.Icon className="h-2.5 w-2.5" strokeWidth={2.5} />
+                          </span>
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 text-sm text-zinc-100">
+                            <span className="font-medium">{k.label}</span>
+                            <span className="text-zinc-400">{item.symbol}</span>
+                          </div>
+                          <div className="mt-0.5 truncate font-mono text-xs text-zinc-500">
+                            {item.counterparty
+                              ? `${item.kind === "send" ? "to" : "from"} ${short(item.counterparty)}`
+                              : item.kind === "wrap"
+                                ? "from your ERC-20"
+                                : "to your ERC-20"}
+                          </div>
+                        </div>
+
+                        <span className="hidden items-center gap-1 rounded-md bg-surface-2 px-2 py-1 text-[11px] text-zinc-400 sm:inline-flex">
+                          <Lock className="h-3 w-3" /> encrypted
                         </span>
-                      </div>
 
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 text-sm text-zinc-100">
-                          <span className="font-medium">{k.label}</span>
-                          <span className="text-zinc-400">{item.symbol}</span>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <span className="text-xs text-zinc-500">{relTime(item.timestamp)}</span>
+                          <a
+                            href={`${EXPLORER}/tx/${item.txHash}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-zinc-500 transition-colors hover:text-zinc-200"
+                          >
+                            tx <ExternalLink className="h-3 w-3" />
+                          </a>
                         </div>
-                        <div className="mt-0.5 truncate font-mono text-xs text-zinc-500">
-                          {item.counterparty
-                            ? `${item.kind === "send" ? "to" : "from"} ${short(item.counterparty)}`
-                            : item.kind === "wrap"
-                              ? "from your ERC-20"
-                              : "to your ERC-20"}
-                        </div>
-                      </div>
-
-                      <span className="hidden items-center gap-1 rounded-md bg-surface-2 px-2 py-1 text-[11px] text-zinc-400 sm:inline-flex">
-                        <Lock className="h-3 w-3" /> encrypted
-                      </span>
-
-                      <div className="flex shrink-0 flex-col items-end gap-1">
-                        <span className="text-xs text-zinc-500">{relTime(item.timestamp)}</span>
-                        <a
-                          href={`${EXPLORER}/tx/${item.txHash}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-zinc-500 transition-colors hover:text-zinc-200"
-                        >
-                          tx <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {error && items.length === 0 && (
         <p className="border-t border-hairline px-5 py-3 text-xs text-danger">{error}</p>
