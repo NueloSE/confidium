@@ -3,6 +3,7 @@ import { MAINNET_CHAIN_ID, SEPOLIA_CHAIN_ID, type SupportedChainId } from "@conf
 import { getPairsCached } from "@/lib/registry-data";
 
 export const revalidate = 60;
+export const maxDuration = 60;
 
 /**
  * tokenlists.org-compatible export of the verified confidential wrappers, so any other dApp can

@@ -5,6 +5,8 @@ import { getServerClient } from "@/lib/clients";
 import { getPairsCached } from "@/lib/registry-data";
 
 export const revalidate = 30;
+// Public-RPC log scanning can take longer than Vercel's default 10s function limit; allow more.
+export const maxDuration = 60;
 
 // Every ERC-7984 balance change emits this (verified on-chain). All three fields are indexed;
 // `amount` is an encrypted handle, so amounts stay private — we never surface a number.
