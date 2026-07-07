@@ -8,7 +8,7 @@
 
 A production-ready dApp for the [Zama Confidential Wrappers Registry](https://docs.zama.ai/protocol) — browse every ERC‑20 ↔ ERC‑7984 pair, wrap, unwrap, and decrypt **any** confidential token, on Sepolia (full) and Ethereum (read‑only).
 
-🌐 **Live:** _add after deploy_ · 🎬 **Demo:** _add after recording_ · 🧵 **Thread:** _add after posting_
+**Live:** https://confidium.vercel.app · **Demo:** _add your video link_ · **X:** _add your thread link_
 
 </div>
 
@@ -16,23 +16,24 @@ A production-ready dApp for the [Zama Confidential Wrappers Registry](https://do
 
 ## What it is
 
-The Zama Wrappers Registry is an on‑chain directory that maps standard ERC‑20 tokens to their confidential ERC‑7984 counterparts. It's powerful but raw — just contract calls. **Confidium turns it into a usable product**: a fast explorer over the live registry, plus the full confidential‑token lifecycle (faucet → wrap → reveal → unwrap), a universal decryptor for *any* ERC‑7984 token, a hybrid registry that anyone can extend, and a reusable SDK + token list for other developers.
+The Zama Wrappers Registry is an on‑chain directory that maps standard ERC‑20 tokens to their confidential ERC‑7984 counterparts. It's powerful but raw — just contract calls. **Confidium turns it into a usable product**: a fast explorer over the live registry, plus the full confidential‑token lifecycle (faucet → wrap → reveal → send → unwrap), a universal decryptor for *any* ERC‑7984 token, a hybrid registry that anyone can extend, and a reusable SDK + token list for other developers.
 
 ## Features
 
-| | Feature | Notes |
-|---|---|---|
-| 🔎 | **Live registry explorer** | Every pair read on‑chain via multicall, enriched with metadata, searchable, badged. Sepolia + Ethereum. |
-| 🪙 | **Faucet** | Mint official Sepolia `cTokenMock` underlyings to test with. |
-| 📦 | **Wrap** | ERC‑20 → confidential ERC‑7984 (approve + wrap). |
-| 🔓 | **Unwrap** | Full async protocol: burn → public‑decrypt → finalize, driven entirely by the dApp. |
-| 💸 | **Confidential send** | Transfer an ERC‑7984 to anyone — the amount stays **encrypted end‑to‑end** (one tx, no decrypt). |
-| 👁️ | **Reveal balance** | EIP‑712 user‑decrypt of your confidential balance, with session caching. |
-| 🌐 | **Decrypt *any* ERC‑7984** | Paste any confidential token address — auto‑validates via ERC‑165 and decrypts. Not limited to the registry. |
-| ♻️ | **Pending‑unwrap recovery** | Detects unwraps that were burned but never finalized (e.g. a closed tab) and lets you finalize them. Funds never get stuck. |
-| ➕ | **Hybrid registry + add‑a‑pair** | On‑chain registry is the source of truth; add extra pairs via the in‑app form or committed config. See [below](#adding-a-pair). |
-| 🧩 | **Embeddable widget** | Drop a wrap/unwrap box into any site with one `<iframe>`. See [Building on Confidium](#building-on-confidium). |
-| 🧱 | **Developer SDK + token list** | `@confidium/core` package and a [tokenlists.org](https://tokenlists.org)‑schema export at `/api/token-list`. |
+| Feature | Notes |
+|---|---|
+| Live registry explorer | Every pair read on‑chain via multicall, enriched with metadata, searchable, badged. Sepolia + Ethereum. |
+| Faucet | Mint official Sepolia `cTokenMock` underlyings to test with. |
+| Wrap | ERC‑20 → confidential ERC‑7984 (approve + wrap). |
+| Unwrap | Full async protocol: burn → public‑decrypt → finalize, driven entirely by the dApp. |
+| Confidential send | Transfer an ERC‑7984 to anyone; the amount stays encrypted end‑to‑end (one tx, no decrypt). |
+| Reveal balance | EIP‑712 user‑decrypt of your confidential balance, with session caching. |
+| Decrypt any ERC‑7984 | Paste any confidential token address — auto‑validates via ERC‑165 and decrypts. Not limited to the registry. |
+| Activity feed | Per‑wallet history of wraps, unwraps, sends and receives, reconstructed from on‑chain events; amounts stay encrypted. |
+| Pending‑unwrap recovery | Detects unwraps that were burned but never finalized (e.g. a closed tab) and lets you finalize them. Funds never get stuck. |
+| Hybrid registry + add‑a‑pair | On‑chain registry is the source of truth; add extra pairs via the in‑app form or committed config. See [below](#adding-a-pair). |
+| Embeddable widget | Drop a wrap/unwrap box into any site with one `<iframe>`. See [Building on Confidium](#building-on-confidium). |
+| Developer SDK + token list | [`@confidium/core`](https://www.npmjs.com/package/@confidium/core) on npm, and a [tokenlists.org](https://tokenlists.org)‑schema export at `/api/token-list`. |
 
 ## Supported networks
 
