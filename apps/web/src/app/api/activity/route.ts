@@ -50,7 +50,7 @@ export async function GET(req: Request) {
     // so every response is tiny and returns fast — never times out (unfiltered wide scans choke the
     // RPC). Covers ~1 day of recent activity; the client accumulates the rest in local storage.
     const CHUNK = 900n;
-    const WINDOWS = 8;
+    const WINDOWS = 6;
     const CONCURRENCY = 6;
     const latest = await client.getBlockNumber();
 

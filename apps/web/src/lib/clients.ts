@@ -5,7 +5,10 @@ import { MAINNET_CHAIN_ID, type SupportedChainId } from "@confidium/core";
 function transportsFor(envUrl: string | undefined, ...publics: string[]) {
   const urls = [envUrl, ...publics].filter(Boolean) as string[];
   // env (if set) first, then reliable public endpoints, then viem's chain default.
-  return fallback([...urls.map((u) => http(u)), http()]);
+  // Short timeout + no per-transport retries → a slow/misconfigured RPC fails over fast instead of
+  // hanging (otherwise a bad primary RPC stalls log scans until the serverless function times out).
+  const opts = { timeout: 4_000, retryCount: 0 } as const;
+  return fallback([...urls.map((u) => http(u, opts)), http(undefined, opts)], { retryCount: 0 });
 }
 
 const sepoliaClient = createPublicClient({
