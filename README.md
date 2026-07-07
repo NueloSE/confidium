@@ -8,7 +8,7 @@
 
 A production-ready dApp for the [Zama Confidential Wrappers Registry](https://docs.zama.ai/protocol) — browse every ERC‑20 ↔ ERC‑7984 pair, wrap, unwrap, and decrypt **any** confidential token, on Sepolia (full) and Ethereum (read‑only).
 
-**Live:** https://confidium.vercel.app · **Demo:** _add your video link_ · **X:** https://x.com/isNuelo/status/2074597679611482199
+**Live:** https://confidium.vercel.app · **Demo:** https://youtu.be/Lc42b_OtHhw · **X:** https://x.com/isNuelo/status/2074597679611482199
 
 </div>
 
