@@ -28,6 +28,17 @@ const EXPLORER = "https://sepolia.etherscan.io";
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
+/** Union new items with the persisted set, de-duped by id, newest first — keeps history durable. */
+function mergeActivity(existing: ActivityItem[], incoming: ActivityItem[]): ActivityItem[] {
+  const keyOf = (it: ActivityItem) => it.id ?? `${it.txHash}:${it.blockNumber}:${it.kind}`;
+  const byId = new Map<string, ActivityItem>();
+  for (const it of existing) byId.set(keyOf(it), it);
+  for (const it of incoming) byId.set(keyOf(it), it);
+  return [...byId.values()]
+    .sort((a, b) => Number(BigInt(b.blockNumber) - BigInt(a.blockNumber)))
+    .slice(0, 300);
+}
+
 function relTime(ts: number | null): string {
   if (!ts) return "";
   const s = Math.floor(Date.now() / 1000) - ts;
@@ -71,19 +82,30 @@ export function ActivityFeed() {
     if (!address) return;
     setLoading(true);
     setError(null);
+    const key = `confidium.activity.${address.toLowerCase()}`;
     try {
       const res = await fetch(`/api/activity?user=${address}`);
       const json = (await res.json()) as { items?: ActivityItem[]; error?: string };
       const next = json.items ?? [];
-      setItems(next);
+      // Merge into the persisted history so past activity is never lost — the live scan only covers
+      // a recent window, but local storage accumulates everything ever seen (durable per device).
+      let base: ActivityItem[] = [];
       try {
-        localStorage.setItem(`confidium.activity.${address.toLowerCase()}`, JSON.stringify(next));
+        const cached = localStorage.getItem(key);
+        if (cached) base = JSON.parse(cached) as ActivityItem[];
+      } catch {
+        /* ignore */
+      }
+      const merged = mergeActivity(base, next);
+      setItems(merged);
+      try {
+        localStorage.setItem(key, JSON.stringify(merged));
       } catch {
         /* storage unavailable */
       }
       if (json.error) setError(json.error);
     } catch {
-      setError("Couldn't load your activity.");
+      setError("Couldn't refresh — showing your saved activity.");
     } finally {
       setLoading(false);
     }

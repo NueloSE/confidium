@@ -17,6 +17,7 @@ const confidentialTransfer = parseAbiItem(
 export type ActivityKind = "wrap" | "unwrap" | "send" | "receive";
 
 export interface ActivityItem {
+  id: string; // `${txHash}:${logIndex}` — stable, for client-side de-dupe/merge
   kind: ActivityKind;
   wrapper: string;
   symbol: string;
@@ -45,11 +46,12 @@ export async function GET(req: Request) {
     );
     const wrappers = pairs.map((p) => getAddress(p.wrapper));
 
-    // A dedicated RPC (Alchemy/Infura) allows wide getLogs ranges → a few big windows (fast).
-    // Public RPCs hard-cap at ~1000 blocks → many small windows (reliable, slower). Cached either way.
+    // A dedicated RPC (Alchemy/Infura) allows wide getLogs ranges → a few big windows cover ~7 days
+    // fast. Public RPCs hard-cap at ~1000 blocks, so we scan a SMALL recent window (never times out);
+    // the client accumulates history across visits in local storage, so it stays durable regardless.
     const dedicatedRpc = Boolean(process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL);
     const CHUNK = dedicatedRpc ? 9_000n : 950n;
-    const WINDOWS = dedicatedRpc ? 6 : 28;
+    const WINDOWS = dedicatedRpc ? 6 : 8;
     const CONCURRENCY = 5;
     const latest = await client.getBlockNumber();
 
@@ -106,6 +108,7 @@ export async function GET(req: Request) {
         counterparty = from;
       }
       return {
+        id: `${l.transactionHash}:${l.logIndex}`,
         kind,
         wrapper: l.address,
         symbol: symbolByWrapper.get(l.address.toLowerCase()) ?? "cToken",
