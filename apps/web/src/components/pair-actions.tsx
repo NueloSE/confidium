@@ -273,7 +273,7 @@ function BalanceBar({ pair, refreshKey }: { pair: UiPair; refreshKey: number }) 
       {added ? (
         <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-success/25 bg-success-soft px-3 py-2 text-xs font-medium text-success">
           <Check className="h-3.5 w-3.5" />
-          Added to MetaMask
+          Added to wallet
         </span>
       ) : (
         <button
@@ -291,7 +291,7 @@ function BalanceBar({ pair, refreshKey }: { pair: UiPair; refreshKey: number }) 
           }
         >
           <Wallet className="h-3.5 w-3.5" />
-          Add to MetaMask
+          Add to wallet
         </button>
       )}
     </div>
