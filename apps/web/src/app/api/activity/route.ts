@@ -46,50 +46,53 @@ export async function GET(req: Request) {
     );
     const wrappers = pairs.map((p) => getAddress(p.wrapper));
 
-    // A dedicated RPC (Alchemy/Infura) allows wide getLogs ranges → a few big windows cover ~7 days
-    // fast. Public RPCs hard-cap at ~1000 blocks, so we scan a SMALL recent window (never times out);
-    // the client accumulates history across visits in local storage, so it stays durable regardless.
-    const dedicatedRpc = Boolean(process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL);
-    const CHUNK = dedicatedRpc ? 9_000n : 950n;
-    const WINDOWS = dedicatedRpc ? 6 : 8;
-    const CONCURRENCY = 5;
+    // Reliability first: small (<1000-block) windows with logs FILTERED by the user (from OR to),
+    // so every response is tiny and returns fast — never times out (unfiltered wide scans choke the
+    // RPC). Covers ~1 day of recent activity; the client accumulates the rest in local storage.
+    const CHUNK = 900n;
+    const WINDOWS = 8;
+    const CONCURRENCY = 6;
     const latest = await client.getBlockNumber();
 
-    const ranges: Array<{ fromBlock: bigint; toBlock: bigint }> = [];
+    type Query = { args: { from?: `0x${string}`; to?: `0x${string}` }; fromBlock: bigint; toBlock: bigint };
+    const queries: Query[] = [];
     let cursor = latest;
     for (let i = 0; i < WINDOWS; i++) {
       const fromBlock = cursor > CHUNK ? cursor - CHUNK : 0n;
-      ranges.push({ fromBlock, toBlock: cursor });
+      queries.push({ args: { from: u }, fromBlock, toBlock: cursor });
+      queries.push({ args: { to: u }, fromBlock, toBlock: cursor });
       if (fromBlock === 0n) break;
       cursor = fromBlock - 1n;
     }
 
-    async function windowLogs(fromBlock: bigint, toBlock: bigint) {
+    async function runQuery(q: Query) {
       try {
-        return await client.getLogs({ address: wrappers, event: confidentialTransfer, fromBlock, toBlock });
+        return await client.getLogs({
+          address: wrappers,
+          event: confidentialTransfer,
+          args: q.args,
+          fromBlock: q.fromBlock,
+          toBlock: q.toBlock,
+        });
       } catch {
         return [] as const;
       }
     }
-    type TransferLog = Awaited<ReturnType<typeof windowLogs>>[number];
-
-    const collected: TransferLog[] = [];
-    for (let i = 0; i < ranges.length; i += CONCURRENCY) {
-      const batch = await Promise.all(
-        ranges.slice(i, i + CONCURRENCY).map((r) => windowLogs(r.fromBlock, r.toBlock)),
-      );
-      for (const arr of batch) collected.push(...arr);
-    }
+    type TransferLog = Awaited<ReturnType<typeof runQuery>>[number];
 
     const seen = new Set<string>();
-    const mine = collected.filter((l) => {
-      const key = `${l.transactionHash}:${l.logIndex}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      const from = l.args.from?.toLowerCase();
-      const to = l.args.to?.toLowerCase();
-      return from === lower || to === lower;
-    });
+    const mine: TransferLog[] = [];
+    for (let i = 0; i < queries.length; i += CONCURRENCY) {
+      const batch = await Promise.all(queries.slice(i, i + CONCURRENCY).map(runQuery));
+      for (const arr of batch) {
+        for (const l of arr) {
+          const key = `${l.transactionHash}:${l.logIndex}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          mine.push(l);
+        }
+      }
+    }
 
     const shaped: ActivityItem[] = mine.map((l) => {
       const from = (l.args.from ?? zeroAddress) as string;
