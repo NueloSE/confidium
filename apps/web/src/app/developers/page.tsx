@@ -9,9 +9,11 @@ export const metadata: Metadata = {
 };
 
 const REPO = "https://github.com/NueloSE/confidium";
+const NPM = "https://www.npmjs.com/package/@confidium/core";
 const SAMPLE_TOKEN = "0x4E7B06D78965594eB5EF5414c357ca21E1554491"; // cUSDTMock
 
 const RESOURCES = [
+  { label: "npm package", note: "@confidium/core — install & README", href: NPM, Icon: Package },
   { label: "Documentation", note: "README & guides", href: `${REPO}#readme`, Icon: BookOpen },
   { label: "ERC-7984", note: "The confidential-token standard", href: "https://docs.zama.ai/protocol", Icon: Globe },
   { label: "GitHub", note: "Open-source monorepo", href: REPO, Icon: GitBranch },
@@ -36,9 +38,14 @@ export default function DevelopersPage() {
         <h1 className="mt-4 text-3xl font-bold tracking-tight text-zinc-50">Developers</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-400">
           Integrate confidential ERC-7984 tokens with{" "}
-          <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[13px] text-accent-hover">
+          <a
+            href={NPM}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[13px] text-accent-hover underline-offset-2 hover:underline"
+          >
             @confidium/core
-          </code>{" "}
+          </a>{" "}
           — or drop confidential wrapping into any app with one <code className="font-mono">&lt;iframe&gt;</code>.
         </p>
       </div>
